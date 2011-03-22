@@ -72,6 +72,8 @@
 !
 !*************************************************************************************
 
+#include "fintrf.h"
+
 #ifndef mwPointer
 #define mwPointer integer(4)
 #endif

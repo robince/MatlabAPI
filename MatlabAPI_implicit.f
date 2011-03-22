@@ -123,16 +123,16 @@
 !/
       k = mexPrint(" ")
       k = mexPrint("... call implicit(fp,4,6,LOC(fp))")
-      locx = loc(fp)
+      locx = loc(fp(1,1))
       call implicit(fp,4,6,locx)
       k = mexPrint(" ")
       k = mexPrint("... call implicit(VAL(LOC(fp)),4,6,LOC(fp))")
-      locx = loc(fp)
-      call implicit(%VAL(loc(fp)),4,6,locx)
+      locx = loc(fp(1,1))
+      call implicit(%VAL(loc(fp(1,1))),4,6,locx)
       k = mexPrint(" ")
       k = mexPrint("... Getting non-contiguous Fortran pointer fp")
       fp => X(::2,:)
-      locx = loc(fp)
+      locx = loc(fp(1,1))
       stride = fpStride(fp)
       write(line,*) "... Stride = ",stride
       k = mexPrint(line(2:))
@@ -165,7 +165,7 @@
       mwPointer :: locx
       integer(4) :: k
 !-----
-      locx = loc(X)
+      locx = loc(X(1,1))
       if( locx == address ) then
           k = mexPrint("Good, Address of Target was passed")
       else

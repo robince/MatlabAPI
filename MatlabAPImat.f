@@ -56,6 +56,8 @@
 !
 !*************************************************************************************
 
+#include "fintrf.h"
+
 #ifndef mwSize
 #define mwSize integer(4)
 #endif

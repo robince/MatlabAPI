@@ -1002,7 +1002,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetElementSize
 !-----
-      real(8) function mxGetEps
+      real(8) function mxGetEps()
       end function mxGetEps
 !-----
       mwPointer function mxGetField(pm, fieldindex, fieldname)
@@ -1034,7 +1034,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetImagData
 !-----
-      real(8) function mxGetInf
+      real(8) function mxGetInf()
       end function mxGetInf
 !-----
       mwPointer function mxGetIr(pm)
@@ -1057,7 +1057,7 @@
       mwPointer, intent(in) :: mx
       end function mxGetN
 !-----
-      real(8) function mxGetNaN
+      real(8) function mxGetNaN()
       end function mxGetNaN
 !-----
       mwSize function mxGetNumberOfDimensions( mx )
@@ -3600,7 +3600,7 @@
           call MatlabAPI_COM_Apx1( %VAL(pi), stride, N )
           fp => Apx1
       elseif( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 1 .and.       &
-     &        mxIsComplex(mx) ) then
+     &        mxIsComplex(mx) == 1 ) then
           pi = mxGetPi( mx )
           N = mxGetN( mx )
           jc = fpGetJc( mx )

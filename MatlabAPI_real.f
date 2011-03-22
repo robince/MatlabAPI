@@ -458,7 +458,7 @@
       M = size(A,1)
       N = size(A,2)
       if( M*N == 0 ) return
-      address = %loc(A)
+      address = loc(A)
       write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
@@ -484,7 +484,7 @@
       N = size(A,2)
       P = size(A,3)
       if( M*N*P == 0 ) return
-      address = %loc(A)
+      address = loc(A)
       write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
@@ -519,7 +519,7 @@
 !-----
       k = mexPrint("Implicit Interface 2D Matrix Print")
       if( M*N == 0 ) return
-      address = %loc(A)
+      address = loc(A)
       write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
