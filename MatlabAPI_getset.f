@@ -96,6 +96,7 @@
       integer*4 k
       integer :: init = 1
       real(8) :: handle
+      mwSize :: n1,n2
 !-SAV
       save init, handle
 !-----
@@ -116,9 +117,11 @@
 ! the save attribute so it will retain its value between calls.
 !/
       if( init == 1 ) then
-           rhs(1) = mxCreateDoubleMatrix(1,200,mxREAL)
+           n1 = 1
+           n2 = 200
+           rhs(1) = mxCreateDoubleMatrix(n1,n2,mxREAL)
            fpx => fpGetPr1(rhs(1))
-           rhs(2) = mxCreateDoubleMatrix(1,200,mxREAL)
+           rhs(2) = mxCreateDoubleMatrix(n1,n2,mxREAL)
            fpy => fpGetPr1(rhs(2))
            call makespiral(fpx,fpy)
            rhs(3) = mxCreateString("-o")

@@ -216,9 +216,11 @@
       common /MatlabAPI_COMP/ Ppx1
 !-LOC
       mwPointer dir
-      integer(4) i, num
+      integer(4) i, num4
+      mwSize num
 !-----
-      dir = matGetDir(mfp, num)
+      dir = matGetDir(mfp, num4)
+      num = num4
       if( dir /= 0 ) then
           fp => fpAllocate1CharacterMat(num)
           if( associated(fp) ) then
