@@ -92,6 +92,7 @@
       mwSize :: M, N
       integer :: istat
       integer*4 :: i, j, k
+      mwSize :: n1,n2,n3
 !-----
 !\
 ! Check the input
@@ -130,7 +131,9 @@
       k = mexPrint("MatlabAPI_complex test function")
       k = mexPrint(" ")
       k = mexPrint("... Generating a 3 x 4 complex matrix for testing")
-      mx = mxCreateDoubleMatrix(3, 4, mxCOMPLEX)
+      n1 = 3
+      n2 = 4
+      mx = mxCreateDoubleMatrix(n1, n2, mxCOMPLEX)
       k = mexPrint("... Getting 1D Fortran pointer to real data Zfp1D")
       Zfp1D => fpGetPr1(mx)
       if( .not.associated(Zfp1D) ) then
@@ -190,14 +193,17 @@
 !/
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Allocate for complex Fortran pointer, Bfz2D")
-      Bfz2D => fpAllocateZ(size(Afp2D,1),size(Afp2D,2))
+      n1 = size(Afp2D,1)
+      n2 = size(Afp2D,2)
+      Bfz2D => fpAllocateZ(n1,n2)
       if( .not.associated(Bfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to allocate memory for Bfz2D")
       endif
       k = mexPrint("... It worked, since Bfz2D is now associated")
       k = mexPrint("... Reshape it as a 1D matrix")
-      Cfz1D => fpReshape(Bfz2D,size(Bfz2D))
+      n1 = size(Bfz2D)
+      Cfz1D => fpReshape(Bfz2D,n1)
       if( .not.associated(Cfz1D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D")
@@ -222,7 +228,9 @@
           call mexErrMsgTxt("Unable to associate pointer Bfz2D")
       endif
       k = mexPrint("... Reshaping Bfz2D as a 6 x 2 Cfz2D, no data copy")
-      Cfz2D => fpReshape(Bfz2D,6,2)
+      n1 = 6
+      n2 = 2
+      Cfz2D => fpReshape(Bfz2D,n1,n2)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 6 x 2")
@@ -232,7 +240,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfz2D as a 4 x 3 Cfz2D, no data copy")
-      Cfz2D => fpReshape(Bfz2D,4,3)
+      n1 = 4
+      n2 = 3
+      Cfz2D => fpReshape(Bfz2D,n1,n2)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz2D as 4 x 3")
@@ -242,7 +252,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfz2D as a 2 x 3 x 2 Cfz3D, no copy")
-      Cfz3D => fpReshape(Bfz2D,2,3,2)
+      n1 = 2
+      n2 = 3
+      n3 = 2
+      Cfz3D => fpReshape(Bfz2D,n1,n2,n3)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 2 x 3 x 2")
@@ -267,7 +280,8 @@
           call mexErrMsgTxt("Unable to allocate B")
       endif
       k = mexPrint("... Getting a 1D pointer to B, Cfz1D")
-      Cfz1D => fpReshape(B,size(B))
+      n1 = size(B)
+      Cfz1D => fpReshape(B,n1)
       k = mexPrint("... Filling complex matrix B with natural numbers")
       Cfz1D = (/ (i*(1.d0,-1.d0), i=1,size(Cfz1D)) /)
       k = mexPrint("... Calling the explicit print routine with B")
@@ -275,7 +289,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 3 x 8 Cfz2D, no data copy")
-      Cfz2D => fpReshape(B,3,8)
+      n1 = 3
+      n2 = 8
+      Cfz2D => fpReshape(B,n1,n2)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 3 x 8")
@@ -285,7 +301,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 2 x 3 x 4 Cfz3D, no data copy")
-      Cfz3D => fpReshape(B,2,3,4)
+      n1 = 2
+      n2 = 3
+      n3 = 4 
+      Cfz3D => fpReshape(B,n1,n2,n3)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape B as 2 x 3 x 4")
@@ -295,7 +314,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Cfz3D as a 3 x 4 x 2 Cfz3D, no copy")
-      Cfz3D => fpReshape(Cfz3D,3,4,2)
+      n1 = 3
+      n2 = 4
+      n3 = 2
+      Cfz3D => fpReshape(Cfz3D,n1,n2,n3)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz3D as 3 x 4 x 2")
@@ -305,7 +327,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Cfz1D as non-contiguous slice")
-      Cfz3D => fpReshape(Cfz1D(1:size(Cfz1D):2),3,2,2)
+      n1 = 3
+      n2 = 2
+      n3 = 2
+      Cfz3D => fpReshape(Cfz1D(1:size(Cfz1D):2),n1,n2,n3)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz1D as 3 x 2 x 2")

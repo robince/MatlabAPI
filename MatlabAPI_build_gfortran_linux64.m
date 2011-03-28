@@ -63,5 +63,5 @@ mex MatlabAPI_matfile.f MatlabAPImex.o MatlabAPImx.o MatlabAPImat.o
 disp('... Compiling MatlabAPI_engine.f example')
 %%
 options = [matlabroot '/bin/engopts.sh'];
-mex('-v','-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.o', 'MatlabAPImx.o')
+%mex('-v','-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.o', 'MatlabAPImx.o')
 disp('... Done!')
