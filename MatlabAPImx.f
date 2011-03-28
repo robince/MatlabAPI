@@ -4331,7 +4331,7 @@
       mwSize :: N
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4357,7 +4357,7 @@
       mwSize :: N
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4382,7 +4382,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4407,7 +4407,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4432,7 +4432,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4458,7 +4458,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4484,7 +4484,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4510,7 +4510,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4536,7 +4536,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4563,7 +4563,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4590,7 +4590,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4617,7 +4617,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4644,7 +4644,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -4672,7 +4672,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z)
+      zaddress = loc(z(1,1,1,1,1,1,1))
       if( zaddress /= 0 ) then
           stride = fpStride(z)
           if( stride /= 0 ) then
@@ -5016,7 +5016,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5053,7 +5053,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5090,7 +5090,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5127,7 +5127,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1,1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5164,7 +5164,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5202,7 +5202,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5240,7 +5240,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp)
+          mxmemory = loc(fp(1,1,1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fp)
       endif
@@ -5307,7 +5307,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5344,7 +5344,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5381,7 +5381,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5418,7 +5418,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1,1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5455,7 +5455,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5493,7 +5493,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5531,7 +5531,7 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz)
+          mxmemory = loc(fz(1,1,1,1,1,1,1))
           call mxFree(mxmemory)
           nullify(fz)
       endif
@@ -5546,7 +5546,7 @@
       mwPointer ptr
 !-----
       if( associated(fp) ) then
-          ptr = loc(fp)
+          ptr = loc(fp(1))
           call mxFree(ptr)
           nullify(fp)
       endif
@@ -5567,7 +5567,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5594,7 +5594,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5621,7 +5621,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5648,7 +5648,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5675,7 +5675,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5702,7 +5702,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5729,7 +5729,7 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5759,7 +5759,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5790,7 +5790,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5821,7 +5821,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5852,7 +5852,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5883,7 +5883,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5914,7 +5914,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5945,7 +5945,7 @@
       n = n1 * n2
       nullify(fp)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -5976,7 +5976,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6007,7 +6007,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6038,7 +6038,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6069,7 +6069,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6100,7 +6100,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6131,7 +6131,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6162,7 +6162,7 @@
       n = n1 * n2 * n3
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6193,7 +6193,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6224,7 +6224,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6255,7 +6255,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6286,7 +6286,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6317,7 +6317,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6348,7 +6348,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6379,7 +6379,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6410,7 +6410,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6441,7 +6441,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6472,7 +6472,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6503,7 +6503,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6534,7 +6534,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6565,7 +6565,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6596,7 +6596,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6627,7 +6627,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6658,7 +6658,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6689,7 +6689,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6720,7 +6720,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6751,7 +6751,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6782,7 +6782,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6813,7 +6813,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6844,7 +6844,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6875,7 +6875,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6906,7 +6906,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6937,7 +6937,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6968,7 +6968,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -6999,7 +6999,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7030,7 +7030,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7058,7 +7058,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7085,7 +7085,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7112,7 +7112,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7139,7 +7139,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7166,7 +7166,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7193,7 +7193,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7220,7 +7220,7 @@
       mwSize :: stride
 !-----
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7250,7 +7250,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7281,7 +7281,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7312,7 +7312,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7343,7 +7343,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7374,7 +7374,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7405,7 +7405,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7436,7 +7436,7 @@
       n = n1 * n2
       nullify(fz)
       if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7467,7 +7467,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7498,7 +7498,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7529,7 +7529,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7560,7 +7560,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7591,7 +7591,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7622,7 +7622,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7653,7 +7653,7 @@
       n = n1 * n2 * n3
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7684,7 +7684,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7715,7 +7715,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7746,7 +7746,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7777,7 +7777,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7808,7 +7808,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7839,7 +7839,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7870,7 +7870,7 @@
       n = n1 * n2 * n3 * n4
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7901,7 +7901,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7932,7 +7932,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7963,7 +7963,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -7994,7 +7994,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8025,7 +8025,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8056,7 +8056,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8087,7 +8087,7 @@
       n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8118,7 +8118,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8149,7 +8149,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8180,7 +8180,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8211,7 +8211,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8242,7 +8242,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8273,7 +8273,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8304,7 +8304,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
       if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8335,7 +8335,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8365,7 +8365,7 @@
 !-----
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8396,7 +8396,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8427,7 +8427,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8458,7 +8458,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8489,7 +8489,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8520,7 +8520,7 @@
       n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
       if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip)
+      ipaddress = loc(ip(1,1,1,1,1,1,1))
       if( ipaddress /= 0 ) then
           if( size(ip) == n ) then
               stride = fpStride(ip)
@@ -8620,10 +8620,10 @@
       if( mx == 0 .or. size(A) == 0 ) return
       call mxSetM(mx, M)
       call mxSetN(mx, N)
-      address = loc(A)
+      address = loc(A(1))
       call mxSetPr(mx, address)
       if( present(B)) then
-          address = loc(B)
+          address = loc(B(1))
           call mxSetPi(mx, address)
       endif
       return
@@ -8655,10 +8655,10 @@
       N = size(A,2)
       call mxSetM(mx, M)
       call mxSetN(mx, N)
-      address = loc(A)
+      address = loc(A(1,1))
       call mxSetPr(mx, address)
       if( present(B)) then
-          address = loc(B)
+          address = loc(B(1,1))
           call mxSetPi(mx, address)
       endif
       return
@@ -8700,10 +8700,10 @@
           mx = 0
           return
       endif
-      address = loc(A)
+      address = loc(A(1,1,1))
       call mxSetPr(mx, address )
       if( present(B) ) then
-          address = loc(B)
+          address = loc(B(1,1,1))
           call mxSetPi(mx, address )
       endif
       return
@@ -8745,10 +8745,10 @@
           mx = 0
           return
       endif
-      address = loc(A)
+      address = loc(A(1,1,1,1))
       call mxSetPr(mx, address )
       if( present(B) ) then
-          address = loc(B)
+          address = loc(B(1,1,1,1))
           call mxSetPi(mx, address )
       endif
       return
@@ -8790,10 +8790,10 @@
           mx = 0
           return
       endif
-      address = loc(A)
+      address = loc(A(1,1,1,1,1))
       call mxSetPr(mx, address )
       if( present(B) ) then
-          address = loc(B)
+          address = loc(B(1,1,1,1,1))
           call mxSetPi(mx, address )
       endif
       return
@@ -8835,10 +8835,10 @@
           mx = 0
           return
       endif
-      address = loc(A)
+      address = loc(A(1,1,1,1,1,1))
       call mxSetPr(mx, address )
       if( present(B) ) then
-          address = loc(B)
+          address = loc(B(1,1,1,1,1,1))
           call mxSetPi(mx, address )
       endif
       return
@@ -8880,10 +8880,10 @@
           mx = 0
           return
       endif
-      address = loc(A)
+      address = loc(A(1,1,1,1,1,1,1))
       call mxSetPr(mx, address )
       if( present(B) ) then
-          address = loc(B)
+          address = loc(B(1,1,1,1,1,1,1))
           call mxSetPi(mx, address )
       endif
       return

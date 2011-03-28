@@ -42,13 +42,13 @@
 disp('MatlabAPI build script for Gfortan maci64')
 disp(' ')
 disp('... Compiling module MatlabAPImx')
-mex -c -DNOCOMPLEX16 -DNOREAL16 MatlabAPImx.f
+mex  -c -DNOCOMPLEX16 -DNOREAL16 MatlabAPImx.f
 disp('... Compiling module MatlabAPImex')
-mex -c  MatlabAPImex.f
+mex  -c  MatlabAPImex.f
 disp('... Compiling module MatlabAPIeng')
-mex -c MatlabAPIeng.f
+mex  -c MatlabAPIeng.f
 disp('... Compiling module MatlabAPImat')
-mex -c MatlabAPImat.f
+mex  -c MatlabAPImat.f
 %%
 disp('... Compiling MatlabAPI_real.f example')
 mex  MatlabAPI_real.f MatlabAPImex.o MatlabAPImx.o
@@ -63,5 +63,5 @@ mex MatlabAPI_matfile.f MatlabAPImex.o MatlabAPImx.o MatlabAPImat.o
 disp('... Compiling MatlabAPI_engine.f example')
 %%
 options = [matlabroot '/bin/engopts.sh'];
-mex('-v','-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.o', 'MatlabAPImx.o')
+%mex('-v','-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.o', 'MatlabAPImx.o')
 disp('... Done!')

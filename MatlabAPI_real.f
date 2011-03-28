@@ -458,8 +458,8 @@
       M = size(A,1)
       N = size(A,2)
       if( M*N == 0 ) return
-      address = loc(A)
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      address = loc(A(1,1))
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)
@@ -484,8 +484,8 @@
       N = size(A,2)
       P = size(A,3)
       if( M*N*P == 0 ) return
-      address = loc(A)
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      address = loc(A(1,1,1))
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
           write(line,*) 'Sub-Matrix',j
@@ -519,8 +519,8 @@
 !-----
       k = mexPrint("Implicit Interface 2D Matrix Print")
       if( M*N == 0 ) return
-      address = loc(A)
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      address = loc(A(1,1))
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)

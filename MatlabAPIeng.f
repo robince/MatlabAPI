@@ -110,7 +110,7 @@
       mwPointer ptr
 !-----
       if( associated(fp) ) then
-          ptr = loc(fp)
+          ptr = loc(fp(1))
           call mxFree(ptr)
           nullify(fp)
       endif
