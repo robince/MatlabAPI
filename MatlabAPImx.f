@@ -4979,7 +4979,7 @@
               n6 = size(z,6)
               n7 = size(z,7)
               call MatlabAPI_COM_Apx7( %VAL(zaddress), 2*stride,        &
-     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /))
               fp => Apx7
           endif
       endif
@@ -5012,7 +5012,7 @@
               n6 = size(z,6)
               n7 = size(z,7)
               call MatlabAPI_COM_Apx7( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /))
               fp => Apx7
           endif
       endif
