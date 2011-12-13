@@ -4000,13 +4000,15 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:)
+      mwSize :: n1
 !-----
       mp => fpGetPr1(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp))
+      n1 = size(mp,1)
+      fp => fpAllocate(n1)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4021,13 +4023,16 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:)
+      mwSize :: n1, n2
 !-----
       mp => fpGetPr2(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      fp => fpAllocate(n1,n2)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4042,13 +4047,17 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:)
+      mwSize :: n1, n2, n3
 !-----
       mp => fpGetPr3(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      fp => fpAllocate(n1,n2,n3)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4063,13 +4072,18 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:)
+      mwSize :: n1, n2, n3, n4
 !-----
       mp => fpGetPr4(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      fp => fpAllocate(n1,n2,n3,n4)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4084,14 +4098,19 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:)
+      mwSize :: n1, n2, n3, n4, n5
 !-----
       mp => fpGetPr5(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      fp => fpAllocate(n1,n2,n3,n4,n5)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4106,14 +4125,20 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:)
+      mwSize :: n1, n2, n3, n4, n5, n6
 !-----
       mp => fpGetPr6(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      fp => fpAllocate(n1,n2,n3,n4,n5,n6)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4128,14 +4153,21 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:)
+      mwSize :: n1, n2, n3, n4, n5, n6, n7
 !-----
       mp => fpGetPr7(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6),size(mp,7))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      n7 = size(mp,7)
+      fp => fpAllocate(n1,n2,n3,n4,n5,n6,n7)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4171,13 +4203,15 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:)
+      mwSize :: n1
 !-----
       mp => fpGetPi1(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp))
+      n1 = size(mp,1)
+      fp => fpAllocate(n1)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4192,13 +4226,16 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:)
+      mwSize :: n1,n2
 !-----
       mp => fpGetPi2(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      fp => fpAllocate(n1,n2)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4213,13 +4250,17 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:)
+      mwSize :: n1,n2,n3
 !-----
       mp => fpGetPi3(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      fp => fpAllocate(n1,n2,n3)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4234,13 +4275,18 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:)
+      mwSize :: n1,n2,n3,n4
 !-----
       mp => fpGetPi4(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      fp => fpAllocate(n1,n2,n3,n4)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4255,14 +4301,19 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5
 !-----
       mp => fpGetPi5(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      fp => fpAllocate(n1,n2,n3,n4,n5)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4277,14 +4328,20 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5,n6
 !-----
       mp => fpGetPi6(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      fp => fpAllocate(n1,n2,n3,n4,n5,n6)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4299,14 +4356,21 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5,n6,n7
 !-----
       mp => fpGetPi7(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6),size(mp,7))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      n7 = size(mp,7)
+      fp => fpAllocate(n1,n2,n3,n4,n5,n6,n7)
       if( .not.associated(fp) ) then
           return
       endif
@@ -4344,13 +4408,15 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:), mi(:)
+      mwSize :: n1
 !-----
       mp => fpGetPr1(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp))
+      n1 = size(mp,1)
+      fz => fpAllocateZ(n1)
       mi => fpGetPi1(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4367,13 +4433,16 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:), mi(:,:)
+      mwSize :: n1,n2
 !-----
       mp => fpGetPr2(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      fz => fpAllocateZ(n1,n2)
       mi => fpGetPi2(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4390,13 +4459,17 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:), mi(:,:,:)
+      mwSize :: n1,n2,n3
 !-----
       mp => fpGetPr3(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      fz => fpAllocateZ(n1,n2,n3)
       mi => fpGetPi3(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4413,13 +4486,18 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:), mi(:,:,:,:)
+      mwSize :: n1,n2,n3,n4
 !-----
       mp => fpGetPr4(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      fz => fpAllocateZ(n1,n2,n3,n4)
       mi => fpGetPi4(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4436,14 +4514,19 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:), mi(:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5
 !-----
       mp => fpGetPr5(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      fz => fpAllocateZ(n1,n2,n3,n4,n5)
       mi => fpGetPi5(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4460,14 +4543,20 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:), mi(:,:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5,n6
 !-----
       mp => fpGetPr6(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      fz => fpAllocateZ(n1,n2,n3,n4,n5,n6)
       mi => fpGetPi6(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4484,14 +4573,21 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:), mi(:,:,:,:,:,:,:)
+      mwSize :: n1,n2,n3,n4,n5,n6,n7
 !-----
       mp => fpGetPr7(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
-     &                 size(mp,5),size(mp,6),size(mp,7))
+      n1 = size(mp,1)
+      n2 = size(mp,2)
+      n3 = size(mp,3)
+      n4 = size(mp,4)
+      n5 = size(mp,5)
+      n6 = size(mp,6)
+      n7 = size(mp,7)
+      fz => fpAllocateZ(n1,n2,n3,n4,n5,n6,n7)
       mi => fpGetPi7(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -5162,8 +5258,10 @@
       common /MatlabAPI_COMA0/ Apx0
 !-LOC
       mwPointer :: mxmemory
+      mwSize :: n
 !-----
-      mxmemory = mxMalloc(8)
+      n = 8
+      mxmemory = mxMalloc(n)
       if( mxmemory /= 0 ) then
           call MatlabAPI_COM_Apx0( %VAL(mxmemory) )
           fp => Apx0
@@ -5538,8 +5636,10 @@
       common /MatlabAPI_COMZ0/ Zpx0
 !-LOC
       mwPointer :: mxmemory
+      mwSize :: n
 !-----
-      mxmemory = mxMalloc(16)
+      n = 16
+      mxmemory = mxMalloc(n)
       if( mxmemory /= 0 ) then
           call MatlabAPI_COM_Zpx0( %VAL(mxmemory) )
           fz => Zpx0
