@@ -42,7 +42,7 @@
 disp('MatlabAPI build script for Gfortan maci64')
 disp(' ')
 disp('... Compiling module MatlabAPImx')
-mex -c -largeArrayDims MatlabAPImx.f
+mex -c -largeArrayDims -DNOCOMPLEX16 -DNOREAL16  MatlabAPImx.f
 disp('... Compiling module MatlabAPImex')
 mex -c -largeArrayDims MatlabAPImex.f
 disp('... Compiling module MatlabAPIeng')
