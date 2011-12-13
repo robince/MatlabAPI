@@ -3420,8 +3420,8 @@
       implicit none
 !-ARG
       mwPointer, intent(in) :: px
-      integer(8), intent(out) :: y(n)
       mwSize, intent(in) :: n
+      integer(8), intent(out) :: y(n)
 !-----
       call mxCopyInteger8ToInteger8(%VAL(px), y, n)
       end subroutine mxCopyPtrToInteger8
