@@ -236,7 +236,9 @@
 !/
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Allocate memory for Fortran pointer, Bfp2D")
-      Bfp2D => fpAllocate(size(Afp2D,1),size(Afp2D,2))
+      M = size(Afp2D,1)
+      N = size(Afp2D,2)
+      Bfp2D => fpAllocate(M,N)
       if( .not.associated(Bfp2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to allocate memory for Bfp2D")
@@ -330,7 +332,8 @@
           call mexErrMsgTxt("Unable to allocate B")
       endif
       k = mexPrint("... Getting a 1D pointer to B, Zfp1D")
-      Zfp1D => fpReshape(B,size(B))
+      M = size(B)
+      Zfp1D => fpReshape(B,M)
       k = mexPrint("... Filling real matrix B with natural numbers")
       Zfp1D = (/ (i, i=1,size(Zfp1D)) /)
       k = mexPrint("... Calling the explicit print routine with B")
