@@ -4,9 +4,9 @@
 ! 
 !  Filename:    MatlabAPImat.f
 !  Programmer:  James Tursa
-!  Version:     1.01
-!  Date:        December 11, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -53,6 +53,7 @@
 !  Change Log:
 !  2009/Oct/27 --> Initial Release
 !  2009/Dec/11 --> Changed default address function to LOC instead of %LOC
+!  2011/Jan/03 --> Added include file fintrf.h
 !
 !*************************************************************************************
 
@@ -91,9 +92,14 @@
       mwPointer ptr
       mwSize, parameter :: NLMM = NameLengthMaxMat
 !-----
-      ptr = mxMalloc(NameLengthMaxMat * n)
-      call MatlabAPI_COM_CpxMat(n, %val(ptr), %val(NLMM))
-      fp => Cpx1
+      nullify(fp)
+      if( n > 0 ) then
+          ptr = mxMalloc(NameLengthMaxMat * n)
+          if( ptr /= 0 ) then
+              call MatlabAPI_COM_CpxMat(n, %val(ptr), %val(NLMM))
+              fp => Cpx1
+          endif
+      endif
       return
       end function fpAllocate1CharacterMat
 !----------------------------------------------------------------------
@@ -216,11 +222,9 @@
       common /MatlabAPI_COMP/ Ppx1
 !-LOC
       mwPointer dir
-      integer(4) i, num4
-      mwSize num
+      integer(4) i, num
 !-----
-      dir = matGetDir(mfp, num4)
-      num = num4
+      dir = matGetDir(mfp, num)
       if( dir /= 0 ) then
           fp => fpAllocate1CharacterMat(num)
           if( associated(fp) ) then

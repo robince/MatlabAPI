@@ -4,9 +4,9 @@
 ! 
 !  Filename:    MatlabAPImx.f
 !  Programmer:  James Tursa
-!  Version:     1.01
-!  Date:        December 11, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -636,6 +636,7 @@
 !  Change Log:
 !  2009/Oct/27 --> Initial Release
 !  2009/Dec/11 --> Changed default address function to LOC instead of %LOC
+!  2011/Jan/03 --> Changed classid variable name to avoid Intel ifort compiler bug
 ! 
 !*************************************************************************************
 
@@ -678,6 +679,103 @@
 !/
 !#define NOREAL16
 
+!-----------------------------------------------------
+!-----------------------------------------------------
+!-----------------------------------------------------
+
+!--------------------------------------------------------------------------
+! The following mxArray variable hack is used to access the pr and pi data
+! pointers directly. The rest of it is only strictly good for 2D variables,
+! but this is OK since the relative placement in memory of the pr and pi
+! data pointers is the same regardless of the dimensionality or class of
+! the variable. Bottom line: Don't try to use this hack to get at the other
+! mxArray variable info directly because it isn't complete enough for you
+! to do that. If you need to do it, contact the author for a more complete
+! user-defined type that will work for other dimensionalities and classes.
+!--------------------------------------------------------------------------
+
+      module MatlabAPImxArrayDef
+      
+      type mxArrayNumeric2D
+      sequence
+      mwPointer  name       ! char * (name of var in workspace for R2008b and earlier)
+      integer(4) class_id   ! int (mxClassID 0 - 20)
+      integer(4) vartype    ! int (0-6 = normal,persistent,global,sub-element,temporary,unknown,property)
+      mwPointer  crosslink  ! mxArray * (linked list of shared data copies)
+      mwPointer  ndim       ! size_t (number of dimensions)
+      integer(4) refcount   ! int (number of sub-element shared reference copies)
+      integer(4) flags      ! int (various bit-fields totalling 32-bits)
+      mwPointer  M          ! size_t (row size for 2D arrays)
+      mwPointer  N          ! size_t (column size for 2D arrays)
+      mwPointer  pr         ! void * (real data pointer)
+      mwPointer  pi         ! void * (imaginary data pointer)
+      mwPointer  ir         ! mwIndex * (sparse matrix row indexes)
+      mwPointer  jc         ! mwIndex * (sparse matrix column indexes)
+      mwPointer  nzmax      ! size_t (sparse matrix number of allocated elements)
+      mwPointer  reserved   ! size_t (unknown)
+      end type mxArrayNumeric2D
+      
+      end module MatlabAPImxArrayDef
+
+!-----------------------------------------------------
+!-----------------------------------------------------
+!-----------------------------------------------------
+
+!\
+! This module contains the routine to turn the raw mxArray pointer
+! address value into a Fortran pointer of our user-defined type.
+!/
+      
+      module MatlabAPImxArrayMod
+      use MatlabAPImxArrayDef
+      
+      contains
+      
+      function fpGetArrayNumeric2D(mx) result(fp)
+      implicit none
+      type(mxArrayNumeric2D), pointer :: fp
+!-ARG
+      mwPointer, intent(in) :: mx
+!-COM
+      type(mxArrayNumeric2D), pointer :: Afp
+      common /MatlabAPImxArrayCom/ Afp
+!-----
+      if( mx == 0 ) then
+          nullify(fp)
+      else
+          call MatlabAPImxArrayComAfp(%val(mx))
+          fp => Afp
+      endif
+      return
+      end function fpGetArrayNumeric2D
+      
+      end module MatlabAPImxArrayMod
+
+!----------------------------------------------------------------------
+! Specific Fortan Pointer Helper routine. Not contained in the module
+! because we need an implicit interface to get the %VAL() construct to
+! work properly in the calling routine. Passing the appropriate pointer
+! back in a COMMON block. Looks awkward, but works beautifully.
+!----------------------------------------------------------------------
+
+      subroutine MatlabAPImxArrayComAfp(mx)
+!-USE
+      use MatlabAPImxArrayDef
+      implicit none
+!-ARG
+      type(mxArrayNumeric2D), target :: mx
+!-COM
+      type(mxArrayNumeric2D), pointer :: Afp
+      common /MatlabAPImxArrayCom/ Afp
+!-----
+      Afp => mx
+      return
+      end subroutine MatlabAPImxArrayComAfp
+
+!-----------------------------------------------------
+!-----------------------------------------------------
+!-----------------------------------------------------
+
       module MatlabAPImx
       
       integer*4, parameter :: mxREAL = 0
@@ -688,6 +786,7 @@
       integer*4, parameter :: mxSTRUCT_CLASS   =  2
       integer*4, parameter :: mxLOGICAL_CLASS  =  3
       integer*4, parameter :: mxCHAR_CLASS     =  4
+      integer*4, parameter :: mxVOID_CLASS     =  5
       integer*4, parameter :: mxDOUBLE_CLASS   =  6
       integer*4, parameter :: mxSINGLE_CLASS   =  7
       integer*4, parameter :: mxINT8_CLASS     =  8
@@ -699,6 +798,10 @@
       integer*4, parameter :: mxINT64_CLASS    = 14
       integer*4, parameter :: mxUINT64_CLASS   = 15
       integer*4, parameter :: mxFUNCTION_CLASS = 16
+      integer*4, parameter :: mxOPAQUE_CLASS   = 17
+      integer*4, parameter :: mxOBJECT_CLASS   = 18
+      integer*4, parameter :: mxINDEX_CLASS    = 19
+      integer*4, parameter :: mxSPARSE_CLASS   = 20
       
       integer, parameter :: NameLengthMax_ = 63
       
@@ -919,16 +1022,16 @@
 !      end function mxCreateLogicalScalar
 !-----
       mwPointer function mxCreateNumericArray(ndim, dims,               &
-     &                                        classid, ComplexFlag)
+     &                                        idclass, ComplexFlag)
       mwSize, intent(in) :: ndim
       mwSize, intent(in) :: dims(ndim)
-      integer(4), intent(in) :: classid, ComplexFlag
+      integer(4), intent(in) :: idclass, ComplexFlag
       end function mxCreateNumericArray
 !-----
       mwPointer function mxCreateNumericMatrix(m, n,                    &
-     &                                         classid, ComplexFlag)
+     &                                         idclass, ComplexFlag)
       mwSize, intent(in) :: m, n
-      integer(4), intent(in) :: classid, ComplexFlag
+      integer(4), intent(in) :: idclass, ComplexFlag
       end function mxCreateNumericMatrix
 !-----
       mwPointer function mxCreateSparse(m, n, nzmax, ComplexFlag)
@@ -1002,7 +1105,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetElementSize
 !-----
-      real(8) function mxGetEps()
+      real(8) function mxGetEps
       end function mxGetEps
 !-----
       mwPointer function mxGetField(pm, fieldindex, fieldname)
@@ -1034,7 +1137,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetImagData
 !-----
-      real(8) function mxGetInf()
+      real(8) function mxGetInf
       end function mxGetInf
 !-----
       mwPointer function mxGetIr(pm)
@@ -1057,7 +1160,7 @@
       mwPointer, intent(in) :: mx
       end function mxGetN
 !-----
-      real(8) function mxGetNaN()
+      real(8) function mxGetNaN
       end function mxGetNaN
 !-----
       mwSize function mxGetNumberOfDimensions( mx )
@@ -2461,14 +2564,14 @@
       mwSize, intent(in) :: dims(ndim)
 !-LOC
       integer*4, parameter :: ComplexFlag = 0
-      integer*4 classid
+      integer*4 :: idclass
 !-----
-      classid = mxClassIDFromClassName("logical")
-      if( classid == 0 ) then
+      idclass = mxClassIDFromClassName("logical")
+      if( idclass == 0 ) then
           mxCreateLogicalArray = 0
       else
           mxCreateLogicalArray = mxCreateNumericArray                   &
-     &                          (ndim, dims, classid, ComplexFlag)
+     &                          (ndim, dims, idclass, ComplexFlag)
       endif
       return
       end function mxCreateLogicalArray
@@ -2512,14 +2615,14 @@
       mwSize, intent(in) :: n
 !-LOC
       integer*4, parameter :: ComplexFlag = 0
-      integer*4 classid
+      integer*4 :: idclass
 !-----
-      classid = mxClassIDFromClassName("logical")
-      if( classid == 0 ) then
+      idclass = mxClassIDFromClassName("logical")
+      if( idclass == 0 ) then
           mxCreateLogicalMatrix = 0
       else
           mxCreateLogicalMatrix = mxCreateNumericMatrix                 &
-     &                           (m, n, classid, ComplexFlag)
+     &                           (m, n, idclass, ComplexFlag)
       endif
       return
       end function mxCreateLogicalMatrix
@@ -3317,8 +3420,8 @@
       implicit none
 !-ARG
       mwPointer, intent(in) :: px
-      mwSize, intent(in) :: n
       integer(8), intent(out) :: y(n)
+      mwSize, intent(in) :: n
 !-----
       call mxCopyInteger8ToInteger8(%VAL(px), y, n)
       end subroutine mxCopyPtrToInteger8
@@ -3328,7 +3431,78 @@
 !-----------------------------------------------------      
 ! Specific Fortan Pointer functions
 !-----------------------------------------------------
+
+!------------------------------------------------------------------
+! For R2009a and later there is a runtime assertion failure if we
+! attempt to set the pr or pi pointers to non-MATLAB allocated
+! memory, so we must hack into the mxArray itself to do it directly
+! instead of using the mxSetPr and mxSetPi API routines. The macro
+! mwSignedIndex is defined for R2009a and later but not for R2008b
+! and earlier, so we will use that as the discriminator for needing
+! the special hacking method. The hack consists of overlaying a
+! Fortran user-defined type on top of the memory associated with
+! the MATLAB mxArray variable such that the pr and pi data pointers
+! can be manipulated directly.
+!------------------------------------------------------------------
+
+#ifdef mwSignedIndex
+!------------------------------------------------------------------
+      subroutine fpSetPr( mx, address )
+!-USE
+      use MatlabAPImxArrayDef
+      use MatlabAPImxArrayMod
+      implicit none
+!-ARG
+      mwPointer, intent(in) :: mx
+      mwPointer, intent(in) :: address
+!-LOC
+      type(mxArrayNumeric2D), pointer :: fp
+!-----
+      fp => fpGetArrayNumeric2D(mx)
+      if( associated(fp) ) fp%pr = address
+      end subroutine fpSetPr
+!------------------------------------------------------------------
+      subroutine fpSetPi( mx, address )
+!-USE
+      use MatlabAPImxArrayDef
+      use MatlabAPImxArrayMod
+      implicit none
+!-ARG
+      mwPointer, intent(in) :: mx
+      mwPointer, intent(in) :: address
+!-LOC
+      type(mxArrayNumeric2D), pointer :: fp
+!-----
+      fp => fpGetArrayNumeric2D(mx)
+      if( associated(fp) ) fp%pi = address
+      end subroutine fpSetPi
+!------------------------------------------------------------------
+#else
+!------------------------------------------------------------------
+      subroutine fpSetPr( mx, address )
+      implicit none
+!-ARG
+      mwPointer, intent(in) :: mx
+      mwPointer, intent(in) :: address
+!-----
+      call mxSetPr(mx,address)
+      end subroutine fpSetPr
+!------------------------------------------------------------------
+      subroutine fpSetPi( mx, address )
+      implicit none
+!-ARG
+      mwPointer, intent(in) :: mx
+      mwPointer, intent(in) :: address
+!-----
+      call mxSetPi(mx,address)
+      end subroutine fpSetPi
+!------------------------------------------------------------------
+#endif
       
+!----------------------------------------------------------------------
+! For this function, allow a sparse matrix with a non-zero element.
+! Note the use of msGetNumberOfElements vs mxGetNumberOfElements.
+!----------------------------------------------------------------------
       function fpGetPr0Double( mx ) result(fp)
       implicit none
       real(8), pointer :: fp
@@ -3342,7 +3516,7 @@
 !-----
       nullify( fp )
       if( mxIsDouble(mx) == 1 ) then
-          if( mxGetNumberOfElements( mx ) == 1 ) then
+          if( msGetNumberOfElements( mx ) == 1 ) then
               pr = mxGetPr( mx )
               call MatlabAPI_COM_Apx0( %VAL(pr) )
               fp => Apx0
@@ -3350,6 +3524,9 @@
       endif
       return
       end function fpGetPr0Double
+!----------------------------------------------------------------------
+! For this function, allow a sparse matrix with non-zero elements.
+! Note the use of msGetNumberOfElements vs mxGetNumberOfElements.
 !----------------------------------------------------------------------
       function fpGetPr1Double( mx ) result(fp)
       implicit none
@@ -3365,22 +3542,20 @@
       mwSize, pointer :: jc(:)
       mwSize, parameter :: stride = 1
 !-----
-      if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 ) then
-          pr = mxGetPr( mx )
-          N = mxGetNumberOfElements( mx )
-          call MatlabAPI_COM_Apx1( %VAL(pr), stride, N )
-          fp => Apx1
-      elseif( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 1 ) then
-          pr = mxGetPr( mx )
-          jc = fpGetJc( mx )
-          N = mxGetN( mx )
-          call MatlabAPI_COM_Apx1( %VAL(pr), stride, jc(N+1) )
-          fp => Apx1
-      else
-          nullify( fp )
+      nullify(fp)
+      if( mxIsDouble(mx) == 1 ) then
+          N = msGetNumberOfElements( mx )
+          if( N > 0 ) then
+              pr = mxGetPr( mx )
+              call MatlabAPI_COM_Apx1( %VAL(pr), stride, N )
+              fp => Apx1
+          endif
       endif
       return
       end function fpGetPr1Double
+!----------------------------------------------------------------------
+! From this point on do not allow sparse inputs because there is no
+! way to map them into a full pointer.
 !----------------------------------------------------------------------
       function fpGetPr2Double( mx ) result(fp)
       implicit none
@@ -3396,7 +3571,8 @@
       mwSize, pointer :: dims(:)
 !-----
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxGetNumberOfDimensions(mx) == 2 ) then
+     &    mxGetNumberOfDimensions(mx) == 2 .and.                        &
+     &    mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           call MatlabAPI_COM_Apx2( %VAL(pr), stride, dims )
@@ -3424,7 +3600,7 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    ndim <= 3 ) then
+     &    ndim <= 3 .and. mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3454,7 +3630,7 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    ndim <= 4 ) then
+     &    ndim <= 4 .and. mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3484,7 +3660,7 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    ndim <= 5 ) then
+     &    ndim <= 5 .and. mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3514,7 +3690,7 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    ndim <= 6 ) then
+     &    ndim <= 6 .and. mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3544,7 +3720,7 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    ndim <= 7 ) then
+     &    ndim <= 7 .and. mxGetNumberOfElements(mx) > 0 ) then
           pr = mxGetPr( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3556,6 +3732,9 @@
       endif
       return
       end function fpGetPr7Double
+!----------------------------------------------------------------------
+! For this function, allow a sparse matrix with a non-zero element.
+! Note the use of msGetNumberOfElements vs mxGetNumberOfElements.
 !----------------------------------------------------------------------
       function fpGetPi0Double( mx ) result(fp)
       implicit none
@@ -3570,7 +3749,7 @@
 !-----
       nullify( fp )
       if( mxIsDouble(mx) == 1 .and. mxIsComplex(mx) == 1 ) then
-          if( mxGetNumberOfElements( mx ) == 1 ) then
+          if( msGetNumberOfElements( mx ) == 1 ) then
               pi = mxGetPi( mx )
               call MatlabAPI_COM_Apx0( %VAL(pi) )
               fp => Apx0
@@ -3578,6 +3757,9 @@
       endif
       return
       end function fpGetPi0Double
+!----------------------------------------------------------------------
+! For this function, allow a sparse matrix with non-zero elements.
+! Note the use of msGetNumberOfElements vs mxGetNumberOfElements.
 !----------------------------------------------------------------------
       function fpGetPi1Double( mx ) result(fp)
       implicit none
@@ -3593,24 +3775,20 @@
       mwSize :: N
       mwSize, pointer :: jc(:)
 !-----
-      if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 ) then
-          pi = mxGetPi( mx )
-          N = mxGetNumberOfElements( mx )
-          call MatlabAPI_COM_Apx1( %VAL(pi), stride, N )
-          fp => Apx1
-      elseif( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 1 .and.       &
-     &        mxIsComplex(mx) == 1 ) then
-          pi = mxGetPi( mx )
-          N = mxGetN( mx )
-          jc = fpGetJc( mx )
-          call MatlabAPI_COM_Apx1( %VAL(pi), stride, jc(N+1) )
-          fp => Apx1
-      else
-          nullify( fp )
+      nullify( fp )
+      if( mxIsDouble(mx) == 1 .and. mxIsComplex(mx) == 1 ) then
+          N = msGetNumberOfElements( mx )
+          if( N > 0 ) then
+              pi = mxGetPi( mx )
+              call MatlabAPI_COM_Apx1( %VAL(pi), stride, N )
+              fp => Apx1
+          endif
       endif
       return
       end function fpGetPi1Double
+!----------------------------------------------------------------------
+! From this point on do not allow sparse inputs because there is no
+! way to map them into a full pointer.
 !----------------------------------------------------------------------
       function fpGetPi2Double( mx ) result(fp)
       implicit none
@@ -3627,7 +3805,8 @@
 !-----
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
      &    mxIsComplex(mx) == 1 .and.                                    &
-     &    mxGetNumberOfDimensions(mx) == 2 ) then
+     &    mxGetNumberOfDimensions(mx) == 2 .and.                        &
+     &    mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           call MatlabAPI_COM_Apx2( %VAL(pi), stride, dims )
@@ -3655,7 +3834,8 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 .and. ndim <= 3 ) then
+     &    mxIsComplex(mx) == 1 .and.                                    &
+     &    ndim <= 3 .and. mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3685,7 +3865,8 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 .and. ndim <= 4 ) then
+     &    mxIsComplex(mx) == 1 .and.                                    &
+     &    ndim <= 4 .and. mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3715,7 +3896,8 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 .and. ndim <= 5 ) then
+     &    mxIsComplex(mx) == 1 .and.                                    &
+     &    ndim <= 5 .and. mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3745,7 +3927,8 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 .and. ndim <= 6 ) then
+     &    mxIsComplex(mx) == 1 .and.                                    &
+     &    ndim <= 6 .and. mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3775,7 +3958,8 @@
 !-----
       ndim = mxGetNumberOfDimensions(mx)
       if( mxIsDouble(mx) == 1 .and. mxIsSparse(mx) == 0 .and.           &
-     &    mxIsComplex(mx) == 1 .and. ndim <= 7 ) then
+     &    mxIsComplex(mx) == 1 .and.                                    &
+     &    ndim <= 7 .and. mxGetNumberOfElements(mx) > 0 ) then
           pi = mxGetPi( mx )
           dims => fpGetDimensions( mx )
           dimz = 1
@@ -3816,15 +4000,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:)
-      mwSize :: n1
 !-----
       mp => fpGetPr1(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      fp => fpAllocate(n1)
+      fp => fpAllocate(size(mp))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3839,16 +4021,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:)
-      mwSize :: n1, n2
 !-----
       mp => fpGetPr2(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      fp => fpAllocate(n1,n2)
+      fp => fpAllocate(size(mp,1),size(mp,2))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3863,17 +4042,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:)
-      mwSize :: n1, n2, n3
 !-----
       mp => fpGetPr3(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      fp => fpAllocate(n1,n2,n3)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3888,18 +4063,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:)
-      mwSize :: n1, n2, n3, n4
 !-----
       mp => fpGetPr4(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      fp => fpAllocate(n1,n2,n3,n4)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3914,19 +4084,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:)
-      mwSize :: n1, n2, n3, n4, n5
 !-----
       mp => fpGetPr5(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      fp => fpAllocate(n1,n2,n3,n4,n5)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3941,20 +4106,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:)
-      mwSize :: n1, n2, n3, n4, n5, n6
 !-----
       mp => fpGetPr6(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      fp => fpAllocate(n1,n2,n3,n4,n5,n6)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6))
       if( .not.associated(fp) ) then
           return
       endif
@@ -3969,21 +4128,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:)
-      mwSize :: n1, n2, n3, n4, n5, n6, n7
 !-----
       mp => fpGetPr7(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      n7 = size(mp,7)
-      fp => fpAllocate(n1,n2,n3,n4,n5,n6,n7)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6),size(mp,7))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4019,15 +4171,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:)
-      mwSize :: n1
 !-----
       mp => fpGetPi1(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      fp => fpAllocate(n1)
+      fp => fpAllocate(size(mp))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4042,16 +4192,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:)
-      mwSize :: n1,n2
 !-----
       mp => fpGetPi2(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      fp => fpAllocate(n1,n2)
+      fp => fpAllocate(size(mp,1),size(mp,2))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4066,17 +4213,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:)
-      mwSize :: n1,n2,n3
 !-----
       mp => fpGetPi3(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      fp => fpAllocate(n1,n2,n3)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4091,18 +4234,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:)
-      mwSize :: n1,n2,n3,n4
 !-----
       mp => fpGetPi4(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      fp => fpAllocate(n1,n2,n3,n4)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4117,19 +4255,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5
 !-----
       mp => fpGetPi5(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      fp => fpAllocate(n1,n2,n3,n4,n5)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4144,20 +4277,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5,n6
 !-----
       mp => fpGetPi6(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      fp => fpAllocate(n1,n2,n3,n4,n5,n6)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4172,21 +4299,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5,n6,n7
 !-----
       mp => fpGetPi7(mx)
       if( .not.associated(mp) ) then
           nullify(fp)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      n7 = size(mp,7)
-      fp => fpAllocate(n1,n2,n3,n4,n5,n6,n7)
+      fp => fpAllocate(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6),size(mp,7))
       if( .not.associated(fp) ) then
           return
       endif
@@ -4224,21 +4344,18 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:), mi(:)
-      mwSize :: n1
 !-----
       mp => fpGetPr1(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp)
-      fz => fpAllocateZ(n1)
+      fz => fpAllocateZ(size(mp))
       mi => fpGetPi1(mx)
-      n1 = size(fz)
       if( associated(mi) ) then
-          call mxCopyReal88ToComplex16(mp, mi, fz, n1)
+          call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
       else
-          call mxCopyReal80ToComplex16(mp, fz, n1)
+          call mxCopyReal80ToComplex16(mp, fz, size(fz))
       endif
       return
       end function fpGetPzCopy1Double      
@@ -4250,22 +4367,18 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:), mi(:,:)
-      mwSize :: n1,n2
 !-----
       mp => fpGetPr2(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      fz => fpAllocateZ(n1,n2)
+      fz => fpAllocateZ(size(mp,1),size(mp,2))
       mi => fpGetPi2(mx)
-      n1 = size(fz)
       if( associated(mi) ) then
-          call mxCopyReal88ToComplex16(mp, mi, fz, n1)
+          call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
       else
-          call mxCopyReal80ToComplex16(mp, fz, n1)
+          call mxCopyReal80ToComplex16(mp, fz, size(fz))
       endif
       return
       end function fpGetPzCopy2Double
@@ -4277,17 +4390,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:), mi(:,:,:)
-      mwSize :: n1,n2,n3
 !-----
       mp => fpGetPr3(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      fz => fpAllocateZ(n1,n2,n3)
+      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3))
       mi => fpGetPi3(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4304,18 +4413,13 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:), mi(:,:,:,:)
-      mwSize :: n1,n2,n3,n4
 !-----
       mp => fpGetPr4(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      fz => fpAllocateZ(n1,n2,n3,n4)
+      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4))
       mi => fpGetPi4(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4332,19 +4436,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:), mi(:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5
 !-----
       mp => fpGetPr5(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      fz => fpAllocateZ(n1,n2,n3,n4,n5)
+      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5))
       mi => fpGetPi5(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4361,20 +4460,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:), mi(:,:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5,n6
 !-----
       mp => fpGetPr6(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      fz => fpAllocateZ(n1,n2,n3,n4,n5,n6)
+      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6))
       mi => fpGetPi6(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4391,21 +4484,14 @@
       mwPointer, intent(in) :: mx
 !-LOC
       real(8), pointer :: mp(:,:,:,:,:,:,:), mi(:,:,:,:,:,:,:)
-      mwSize :: n1,n2,n3,n4,n5,n6,n7
 !-----
       mp => fpGetPr7(mx)
       if( .not.associated(mp) ) then
           nullify(fz)
           return
       endif
-      n1 = size(mp,1)
-      n2 = size(mp,2)
-      n3 = size(mp,3)
-      n4 = size(mp,4)
-      n5 = size(mp,5)
-      n6 = size(mp,6)
-      n7 = size(mp,7)
-      fz => fpAllocateZ(n1,n2,n3,n4,n5,n6,n7)
+      fz => fpAllocateZ(size(mp,1),size(mp,2),size(mp,3),size(mp,4),     &
+     &                 size(mp,5),size(mp,6),size(mp,7))
       mi => fpGetPi7(mx)
       if( associated(mi) ) then
           call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
@@ -4429,10 +4515,11 @@
       mwSize :: N
 !-----
       nullify(fp)
-      zaddress = loc(z(1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1))
               N = size(z,1)
               call MatlabAPI_COM_Apx1( %VAL(zaddress), 2*stride, N )
               fp => Apx1
@@ -4455,10 +4542,11 @@
       mwSize :: N
 !-----
       nullify(fp)
-      zaddress = loc(z(1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1))
               N = size(z,1)
               call MatlabAPI_COM_Apx1( %VAL(zaddress+8), 2*stride, N )
               fp => Apx1
@@ -4480,10 +4568,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1))
               call MatlabAPI_COM_Apx2( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2) /) )
               fp => Apx2
@@ -4505,10 +4594,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1))
               call MatlabAPI_COM_Apx2( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2) /) )
               fp => Apx2
@@ -4530,10 +4620,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1))
               call MatlabAPI_COM_Apx3( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3) /) )
@@ -4556,10 +4647,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1))
               call MatlabAPI_COM_Apx3( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3) /) )
@@ -4582,10 +4674,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1))
               call MatlabAPI_COM_Apx4( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4) /) )
@@ -4608,10 +4701,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1))
               call MatlabAPI_COM_Apx4( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4) /) )
@@ -4634,10 +4728,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1))
               call MatlabAPI_COM_Apx5( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -4661,10 +4756,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1))
               call MatlabAPI_COM_Apx5( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -4688,10 +4784,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1,1))
               call MatlabAPI_COM_Apx6( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -4715,10 +4812,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1,1))
               call MatlabAPI_COM_Apx6( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -4742,10 +4840,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1,1,1))
               call MatlabAPI_COM_Apx7( %VAL(zaddress), 2*stride,        &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -4770,10 +4869,11 @@
       mwSize :: stride
 !-----
       nullify(fp)
-      zaddress = loc(z(1,1,1,1,1,1,1))
+      zaddress = loc(z)
       if( zaddress /= 0 ) then
           stride = fpStride(z)
-          if( stride /= 0 ) then
+          if( stride /= 0 .and. size(z) /= 0 ) then
+              zaddress = loc(z(1,1,1,1,1,1,1))
               call MatlabAPI_COM_Apx7( %VAL(zaddress+8), 2*stride,      &
      &                                 (/ size(z,1), size(z,2),         &
      &                                    size(z,3), size(z,4),         &
@@ -5062,12 +5162,14 @@
       common /MatlabAPI_COMA0/ Apx0
 !-LOC
       mwPointer :: mxmemory
-      mwSize :: n
 !-----
-      n = 8
-      mxmemory = mxMalloc(n)
-      call MatlabAPI_COM_Apx0( %VAL(mxmemory) )
-      fp => Apx0
+      mxmemory = mxMalloc(8)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx0( %VAL(mxmemory) )
+          fp => Apx0
+      else
+          nullify(fp)
+      endif
       return
       end function fpAllocate0Double
 !----------------------------------------------------------------------
@@ -5097,14 +5199,17 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize p
 !-----
-      if( n < 0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      if( n <= 0 ) return
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx1( %VAL(mxmemory), stride, n )
+          fp => Apx1
       endif
-      mxmemory = mxMalloc(n*8)
-      call MatlabAPI_COM_Apx1( %VAL(mxmemory), stride, n )
-      fp => Apx1
       return
       end function fpAllocate1Double
 !----------------------------------------------------------------------
@@ -5116,8 +5221,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5134,14 +5241,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(2)
 !-----
-      if( n1<0 .or. n2<0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2/)
+      n = 1
+      do i=1,2
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx2( %VAL(mxmemory), stride, m )
+          fp => Apx2
       endif
-      mxmemory = mxMalloc(n1*n2*8)
-      call MatlabAPI_COM_Apx2( %VAL(mxmemory), stride, (/n1,n2/) )
-      fp => Apx2
       return
       end function fpAllocate2Double
 !----------------------------------------------------------------------
@@ -5153,8 +5271,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5171,14 +5291,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(3)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2,n3/)
+      n = 1
+      do i=1,3
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx3( %VAL(mxmemory), stride, m )
+          fp => Apx3
       endif
-      mxmemory = mxMalloc(n1*n2*n3*8)
-      call MatlabAPI_COM_Apx3( %VAL(mxmemory), stride, (/n1,n2,n3/) )
-      fp => Apx3
       return
       end function fpAllocate3Double
 !----------------------------------------------------------------------
@@ -5190,8 +5321,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5208,14 +5341,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(4)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2,n3,n4/)
+      n = 1
+      do i=1,4
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx4( %VAL(mxmemory), stride, m )
+          fp => Apx4
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*8)
-      call MatlabAPI_COM_Apx4( %VAL(mxmemory), stride, (/n1,n2,n3,n4/) )
-      fp => Apx4
       return
       end function fpAllocate4Double
 !----------------------------------------------------------------------
@@ -5227,8 +5371,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5245,14 +5391,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(5)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2,n3,n4,n5/)
+      n = 1
+      do i=1,5
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx5( %VAL(mxmemory), stride, m )
+          fp => Apx5
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*8)
-      call MatlabAPI_COM_Apx5(%VAL(mxmemory),stride,(/n1,n2,n3,n4,n5/))
-      fp => Apx5
       return
       end function fpAllocate5Double
 !----------------------------------------------------------------------
@@ -5264,8 +5421,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5282,15 +5441,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(6)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 ) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2,n3,n4,n5,n6/)
+      n = 1
+      do i=1,6
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx6( %VAL(mxmemory), stride, m )
+          fp => Apx6
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*n6*8)
-      call MatlabAPI_COM_Apx6( %VAL(mxmemory), stride,                  &
-     &                        (/n1,n2,n3,n4,n5,n6/) )
-      fp => Apx6
       return
       end function fpAllocate6Double
 !----------------------------------------------------------------------
@@ -5302,8 +5471,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5320,15 +5491,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(7)
 !-----
-      if(n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0) then
-          nullify(fp)
-          return
+      nullify(fp)
+      m = (/n1,n2,n3,n4,n5,n6,n7/)
+      n = 1
+      do i=1,7
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 8
+      if( (p / 8) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Apx7( %VAL(mxmemory), stride, m )
+          fp => Apx7
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*n6*n7*8)
-      call MatlabAPI_COM_Apx7( %VAL(mxmemory), stride,                  &
-     &                        (/n1,n2,n3,n4,n5,n6,n7/))
-      fp => Apx7
       return
       end function fpAllocate7Double
 !----------------------------------------------------------------------
@@ -5340,8 +5521,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fp) ) then
-          mxmemory = loc(fp(1,1,1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fp) /= 0 ) then
+              mxmemory = loc(fp(1,1,1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fp)
       endif
       return
@@ -5355,12 +5538,14 @@
       common /MatlabAPI_COMZ0/ Zpx0
 !-LOC
       mwPointer :: mxmemory
-      mwSize :: n
 !-----
-      n = 16
-      mxmemory = mxMalloc(n)
-      call MatlabAPI_COM_Zpx0( %VAL(mxmemory) )
-      fz => Zpx0
+      mxmemory = mxMalloc(16)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx0( %VAL(mxmemory) )
+          fz => Zpx0
+      else
+          nullify(fz)
+      endif
       return
       end function fpAllocateZ0Double
 !----------------------------------------------------------------------
@@ -5390,14 +5575,17 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize p
 !-----
-      if( n<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      if( n <= 0 ) return
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx1( %VAL(mxmemory), stride, n )
+          fz => Zpx1
       endif
-      mxmemory = mxMalloc(n*16)
-      call MatlabAPI_COM_Zpx1( %VAL(mxmemory), stride, n )
-      fz => Zpx1
       return
       end function fpAllocateZ1Double
 !----------------------------------------------------------------------
@@ -5409,8 +5597,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5427,14 +5617,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(2)
 !-----
-      if( n1<0 .or. n2<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2/)
+      n = 1
+      do i=1,2
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx2( %VAL(mxmemory), stride, m )
+          fz => Zpx2
       endif
-      mxmemory = mxMalloc(n1*n2*16)
-      call MatlabAPI_COM_Zpx2( %VAL(mxmemory), stride, (/n1,n2/) )
-      fz => Zpx2
       return
       end function fpAllocateZ2Double
 !----------------------------------------------------------------------
@@ -5446,8 +5647,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5464,14 +5667,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(3)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2,n3/)
+      n = 1
+      do i=1,3
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx3( %VAL(mxmemory), stride, m )
+          fz => Zpx3
       endif
-      mxmemory = mxMalloc(n1*n2*n3*16)
-      call MatlabAPI_COM_Zpx3( %VAL(mxmemory), stride, (/n1,n2,n3/) )
-      fz => Zpx3
       return
       end function fpAllocateZ3Double
 !----------------------------------------------------------------------
@@ -5483,8 +5697,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5501,14 +5717,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(4)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2,n3,n4/)
+      n = 1
+      do i=1,4
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx4( %VAL(mxmemory), stride, m )
+          fz => Zpx4
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*16)
-      call MatlabAPI_COM_Zpx4( %VAL(mxmemory), stride, (/n1,n2,n3,n4/) )
-      fz => Zpx4
       return
       end function fpAllocateZ4Double
 !----------------------------------------------------------------------
@@ -5520,8 +5747,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5538,14 +5767,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(5)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2,n3,n4,n5/)
+      n = 1
+      do i=1,5
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx5( %VAL(mxmemory), stride, m )
+          fz => Zpx5
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*16)
-      call MatlabAPI_COM_Zpx5(%VAL(mxmemory),stride,(/n1,n2,n3,n4,n5/))
-      fz => Zpx5
       return
       end function fpAllocateZ5Double
 !----------------------------------------------------------------------
@@ -5557,8 +5797,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5575,15 +5817,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(6)
 !-----
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 ) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2,n3,n4,n5,n6/)
+      n = 1
+      do i=1,6
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx6( %VAL(mxmemory), stride, m )
+          fz => Zpx6
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*n6*16)
-      call MatlabAPI_COM_Zpx6( %VAL(mxmemory), stride,                  &
-     &                        (/n1,n2,n3,n4,n5,n6/) )
-      fz => Zpx6
       return
       end function fpAllocateZ6Double
 !----------------------------------------------------------------------
@@ -5595,8 +5847,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5613,15 +5867,25 @@
 !-LOC
       mwPointer :: mxmemory
       mwSize, parameter :: stride = 1
+      mwSize i, n, p
+      mwSize m(7)
 !-----
-      if(n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0) then
-          nullify(fz)
-          return
+      nullify(fz)
+      m = (/n1,n2,n3,n4,n5,n6,n7/)
+      n = 1
+      do i=1,7
+          if( m(i) <= 0 ) return
+          p = n * m(i)
+          if( (p / m(i)) /= n ) return
+          n = p
+      enddo
+      p = n * 16
+      if( (p / 16) /= n ) return
+      mxmemory = mxMalloc(p)
+      if( mxmemory /= 0 ) then
+          call MatlabAPI_COM_Zpx7( %VAL(mxmemory), stride, m )
+          fz => Zpx7
       endif
-      mxmemory = mxMalloc(n1*n2*n3*n4*n5*n6*n7*16)
-      call MatlabAPI_COM_Zpx7( %VAL(mxmemory), stride,                  &
-     &                        (/n1,n2,n3,n4,n5,n6,n7/))
-      fz => Zpx7
       return
       end function fpAllocateZ7Double
 !----------------------------------------------------------------------
@@ -5633,8 +5897,10 @@
       mwPointer :: mxmemory
 !-----
       if( associated(fz) ) then
-          mxmemory = loc(fz(1,1,1,1,1,1,1))
-          call mxFree(mxmemory)
+          if( size(fz) /= 0 ) then
+              mxmemory = loc(fz(1,1,1,1,1,1,1))
+              call mxFree(mxmemory)
+          endif
           nullify(fz)
       endif
       return
@@ -5648,8 +5914,10 @@
       mwPointer ptr
 !-----
       if( associated(fp) ) then
-          ptr = loc(fp(1))
-          call mxFree(ptr)
+          if( size(fp) /= 0 ) then
+              ptr = loc(fp(1))
+              call mxFree(ptr)
+          endif
           nullify(fp)
       endif
       return
@@ -5667,14 +5935,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5694,14 +5969,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5721,14 +6003,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5748,14 +6037,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5775,14 +6071,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5802,14 +6105,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5829,14 +6139,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fp)
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Apx1( %VAL(ipaddress), stride, m )
                   fp => Apx1
               endif
           endif
@@ -5856,18 +6173,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -5887,18 +6220,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -5918,18 +6267,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -5949,18 +6314,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -5980,18 +6361,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -6011,18 +6408,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -6042,18 +6455,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fp)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Apx2( %VAL(ipaddress), stride, m )
                   fp => Apx2
               endif
           endif
@@ -6073,18 +6502,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6104,18 +6549,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6135,18 +6596,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6166,18 +6643,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6197,18 +6690,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6228,18 +6737,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6259,18 +6784,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Apx3( %VAL(ipaddress), stride, m )
                   fp => Apx3
               endif
           endif
@@ -6290,18 +6831,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6321,18 +6878,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6352,18 +6925,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6383,18 +6972,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6414,18 +7019,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6445,18 +7066,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6476,18 +7113,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Apx4( %VAL(ipaddress), stride, m )
                   fp => Apx4
               endif
           endif
@@ -6507,18 +7160,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6538,18 +7207,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6569,18 +7254,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6600,18 +7301,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6631,18 +7348,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6662,18 +7395,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6693,18 +7442,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Apx5( %VAL(ipaddress), stride, m )
                   fp => Apx5
               endif
           endif
@@ -6724,18 +7489,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6755,18 +7536,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6786,18 +7583,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6817,18 +7630,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6848,18 +7677,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6879,18 +7724,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6910,18 +7771,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fp)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Apx6( %VAL(ipaddress), stride, m )
                   fp => Apx6
               endif
           endif
@@ -6941,18 +7818,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -6972,18 +7865,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7003,18 +7912,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7034,18 +7959,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7065,18 +8006,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7096,18 +8053,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7127,18 +8100,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fp)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Apx7( %VAL(ipaddress), stride, m )
                   fp => Apx7
               endif
           endif
@@ -7158,14 +8147,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7185,14 +8181,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7212,14 +8215,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7239,14 +8249,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7266,14 +8283,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7293,14 +8317,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7320,14 +8351,21 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
+      mwSize :: m
 !-----
       nullify(fz)
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          if( n == 0 ) then
+              m = size(ip)
+          else
+              m = n
+          endif
+          if( size(ip) == m .and. m > 0 ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, n )
+                  call MatlabAPI_COM_Zpx1( %VAL(ipaddress), stride, m )
                   fz => Zpx1
               endif
           endif
@@ -7347,18 +8385,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7378,18 +8432,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7409,18 +8479,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7440,18 +8526,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7471,18 +8573,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7502,18 +8620,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7533,18 +8667,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(2)
 !-----
-      n = n1 * n2
       nullify(fz)
-      if( n1<0 .or. n2<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2/)
+          zeroindex = 0
+          n = 1
+          do i=1,2
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2/) )
+                  call MatlabAPI_COM_Zpx2( %VAL(ipaddress), stride, m )
                   fz => Zpx2
               endif
           endif
@@ -7564,18 +8714,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7595,18 +8761,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7626,18 +8808,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7657,18 +8855,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7688,18 +8902,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7719,18 +8949,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7750,18 +8996,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(3)
 !-----
-      n = n1 * n2 * n3
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3/)
+          zeroindex = 0
+          n = 1
+          do i=1,3
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3/) )
+                  call MatlabAPI_COM_Zpx3( %VAL(ipaddress), stride, m )
                   fz => Zpx3
               endif
           endif
@@ -7781,18 +9043,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7812,18 +9090,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7843,18 +9137,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7874,18 +9184,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7905,18 +9231,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7936,18 +9278,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7967,18 +9325,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(4)
 !-----
-      n = n1 * n2 * n3 * n4
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4/)
+          zeroindex = 0
+          n = 1
+          do i=1,4
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4/) )
+                  call MatlabAPI_COM_Zpx4( %VAL(ipaddress), stride, m )
                   fz => Zpx4
               endif
           endif
@@ -7998,18 +9372,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8029,18 +9419,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8060,18 +9466,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8091,18 +9513,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8122,18 +9560,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8153,18 +9607,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8184,18 +9654,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(5)
 !-----
-      n = n1 * n2 * n3 * n4 * n5
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 ) return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5/)
+          zeroindex = 0
+          n = 1
+          do i=1,5
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5/) )
+                  call MatlabAPI_COM_Zpx5( %VAL(ipaddress), stride, m )
                   fz => Zpx5
               endif
           endif
@@ -8215,18 +9701,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8246,18 +9748,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8277,18 +9795,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8308,18 +9842,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8339,18 +9889,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8370,18 +9936,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8401,18 +9983,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(6)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6
       nullify(fz)
-      if( n1<0 .or. n2<0 .or. n3<0 .or. n4<0 .or. n5<0 .or. n6<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6/)
+          zeroindex = 0
+          n = 1
+          do i=1,6
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6/) )
+                  call MatlabAPI_COM_Zpx6( %VAL(ipaddress), stride, m )
                   fz => Zpx6
               endif
           endif
@@ -8432,18 +10030,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8463,17 +10077,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      ipaddress = loc(ip(1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8493,18 +10124,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8524,18 +10171,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8555,18 +10218,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8586,18 +10265,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8617,18 +10312,34 @@
 !-LOC
       mwPointer :: ipaddress
       mwSize :: stride
-      mwSize :: n
+      mwSize :: i, n, p, zeroindex
+      mwSize :: m(7)
 !-----
-      n = n1 * n2 * n3 * n4 * n5 * n6 * n7
       nullify(fz)
-      if( n1<0.or.n2<0.or.n3<0.or.n4<0.or.n5<0.or.n6<0.or.n7<0 )return
-      ipaddress = loc(ip(1,1,1,1,1,1,1))
+      ipaddress = loc(ip)
       if( ipaddress /= 0 ) then
-          if( size(ip) == n ) then
+          m = (/n1,n2,n3,n4,n5,n6,n7/)
+          zeroindex = 0
+          n = 1
+          do i=1,7
+              if( m(i) == 0 ) then
+                  if( zeroindex /= 0 ) return
+                  zeroindex = i
+              else
+                  p = n * m(i)
+                  if( (p / m(i)) /= n ) return
+                  n = p
+              endif
+          enddo
+          if( zeroindex /= 0 ) then
+              m(zeroindex) = size(ip) / n
+              n = n * m(zeroindex)
+          endif
+          if( all( m > 0 ) .and. size(ip) == n ) then
+              ipaddress = loc(ip(1,1,1,1,1,1,1))
               stride = fpStride(ip)
               if( stride /= 0 ) then
-                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride,     &
-     &                                    (/n1,n2,n3,n4,n5,n6,n7/) )
+                  call MatlabAPI_COM_Zpx7( %VAL(ipaddress), stride, m )
                   fz => Zpx7
               endif
           endif
@@ -8672,10 +10383,10 @@
       call mxSetM(mx, N)
       call mxSetN(mx, N)
       address = loc(A)
-      call mxSetPr(mx, address)
+      call fpSetPr(mx, address)
       if( present(B)) then
           address = loc(B)
-          call mxSetPi(mx, address)
+          call fpSetPi(mx, address)
       endif
       return
       end function mxArrayHeader0double
@@ -8700,7 +10411,7 @@
             if( rowcol == 'ROW' ) then
                 M = 1
                 N = size(A)
-            elseif( rowcol == 'COLUMN' ) then
+            elseif( rowcol == 'COLUMN' .or. rowcol == 'COL' ) then
                 M = size(A)
                 N = 1
             else
@@ -8723,10 +10434,10 @@
       call mxSetM(mx, M)
       call mxSetN(mx, N)
       address = loc(A(1))
-      call mxSetPr(mx, address)
+      call fpSetPr(mx, address)
       if( present(B)) then
           address = loc(B(1))
-          call mxSetPi(mx, address)
+          call fpSetPi(mx, address)
       endif
       return
       end function mxArrayHeader1double
@@ -8758,10 +10469,10 @@
       call mxSetM(mx, M)
       call mxSetN(mx, N)
       address = loc(A(1,1))
-      call mxSetPr(mx, address)
+      call fpSetPr(mx, address)
       if( present(B)) then
           address = loc(B(1,1))
-          call mxSetPi(mx, address)
+          call fpSetPi(mx, address)
       endif
       return
       end function mxArrayHeader2double
@@ -8803,10 +10514,10 @@
           return
       endif
       address = loc(A(1,1,1))
-      call mxSetPr(mx, address )
+      call fpSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1))
-          call mxSetPi(mx, address )
+          call fpSetPi(mx, address )
       endif
       return
       end function mxArrayHeader3double
@@ -8848,10 +10559,10 @@
           return
       endif
       address = loc(A(1,1,1,1))
-      call mxSetPr(mx, address )
+      call fpSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1))
-          call mxSetPi(mx, address )
+          call fpSetPi(mx, address )
       endif
       return
       end function mxArrayHeader4double
@@ -8893,10 +10604,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1))
-      call mxSetPr(mx, address )
+      call fpSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1))
-          call mxSetPi(mx, address )
+          call fpSetPi(mx, address )
       endif
       return
       end function mxArrayHeader5double
@@ -8938,10 +10649,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1,1))
-      call mxSetPr(mx, address )
+      call fpSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1,1))
-          call mxSetPi(mx, address )
+          call fpSetPi(mx, address )
       endif
       return
       end function mxArrayHeader6double
@@ -8983,10 +10694,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1,1,1))
-      call mxSetPr(mx, address )
+      call fpSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1,1,1))
-          call mxSetPi(mx, address )
+          call fpSetPi(mx, address )
       endif
       return
       end function mxArrayHeader7double
@@ -9091,7 +10802,7 @@
       else
           mx = mxCreateDoubleMatrix(M, N, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr2(mx)
       fp = A
       if( present(B) ) then
@@ -9131,7 +10842,7 @@
           mx = mxCreateNumericArray                                     &
      &        (ndim, dims, mxDOUBLE_CLASS, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr3(mx)
       fp = A
       if( present(B) ) then
@@ -9171,7 +10882,7 @@
           mx = mxCreateNumericArray                                     &
      &        (ndim, dims, mxDOUBLE_CLASS, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr4(mx)
       fp = A
       if( present(B) ) then
@@ -9211,7 +10922,7 @@
           mx = mxCreateNumericArray                                     &
      &        (ndim, dims, mxDOUBLE_CLASS, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr5(mx)
       fp = A
       if( present(B) ) then
@@ -9251,7 +10962,7 @@
           mx = mxCreateNumericArray                                     &
      &        (ndim, dims, mxDOUBLE_CLASS, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr6(mx)
       fp = A
       if( present(B) ) then
@@ -9291,7 +11002,7 @@
           mx = mxCreateNumericArray                                     &
      &        (ndim, dims, mxDOUBLE_CLASS, mxREAL)
       endif
-      if( mx == 0 ) return
+      if( mx == 0 .or. size(A) == 0 ) return
       fp => fpGetPr7(mx)
       fp = A
       if( present(B) ) then
@@ -10062,6 +11773,29 @@
       end subroutine random_number7double
 
 !-------------------------------------------------------------------------------
+! Gets actual number of elements physically stored in variable. So for sparse
+! matrices it is the number of non-zeros stored.
+!-------------------------------------------------------------------------------
+
+      mwSize function msGetNumberOfElements(mx) result(n)
+!-ARG
+      mwPointer, intent(in) :: mx
+!-LOC
+      mwSize, pointer :: jc(:)
+!-----
+      if( mxIsSparse(mx) == 1 ) then
+          jc => fpGetJc(mx)
+          if( associated(jc) ) then
+              n = jc(mxGetN(mx)+1)
+          else ! Should never hit this branch, but just in case
+              n = 0
+          endif
+      else
+          n = mxGetNumberOfElements(mx)
+      endif
+      end function msGetNumberOfElements
+
+!-------------------------------------------------------------------------------
 
       end module MatlabAPImx
 
@@ -10409,8 +12143,8 @@
       end function mxDataToLogical4
       
 !----------------------------------------------------------------------
-! Specific Fortan Pointer Helper functions. Not contained in the module
-! becausewe need an implicit interface to get the %VAL() construct to
+! Specific Fortan Pointer Helper routines. Not contained in the module
+! because we need an implicit interface to get the %VAL() construct to
 ! work properly in the calling routine. Passing the appropriate pointer
 ! back in a COMMON block. Looks awkward, but works beautifully.
 !----------------------------------------------------------------------

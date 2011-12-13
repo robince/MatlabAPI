@@ -4,9 +4,9 @@
 ! 
 !  Filename:    MatlabAPImex.f
 !  Programmer:  James Tursa
-!  Version:     1.01
-!  Date:        December 11, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -69,6 +69,7 @@
 !  Change Log:
 !  2009/Oct/27 --> Initial Release
 !  2009/Dec/11 --> Changed default address function to LOC instead of %LOC
+!  2011/May/10 --> Added include file fintrf.h
 !
 !*************************************************************************************
 
@@ -111,9 +112,14 @@
       mwPointer ptr
       mwSize, parameter :: NLMM = NameLengthMaxMex
 !-----
-      ptr = mxMalloc(NameLengthMaxMex * n)
-      call MatlabAPI_COM_CpxMex(n, %val(ptr), %val(NLMM))
-      fp => Cpx1
+      nullify(fp)
+      if( n > 0 ) then
+          ptr = mxMalloc(NameLengthMaxMex * n)
+          if( ptr /= 0 ) then
+              call MatlabAPI_COM_CpxMex(n, %val(ptr), %val(NLMM))
+              fp => Cpx1
+          endif
+      endif
       return
       end function fpAllocate1CharacterMex
 !----------------------------------------------------------------------
@@ -422,12 +428,14 @@
 !-LOC
       mwPointer mxproperty
       mwPointer mx(2), my(1)
-      integer(4) trapflag
+      integer(4) trapflag, nlhs, nrhs
 !-----
       mx(1) = mxCreateDoubleScalar(handle)
       mx(2) = mxCreateString(property)
       call mexSetTrapFlag(1)
-      trapflag = mexCallMATLAB(1, my, 2, mx, "get")
+      nlhs = 1
+      nrhs = 2
+      trapflag = mexCallMATLAB(nlhs, my, nrhs, mx, "get")
       call mxDestroyArray(mx(2))
       call mxDestroyArray(mx(1))
       if( trapflag == 0 ) then
@@ -452,12 +460,15 @@
 !-LOC
       mwPointer mx(3)
       mwPointer answer(1)
+      integer(4) nlhs, nrhs
 !-----
       mx(1) = mxCreateDoubleScalar(handle)
       mx(2) = mxCreateString(property)
       mx(3) = value
       call mexSetTrapFlag(1)
-      mexSet = mexCallMATLAB(0, answer, 3, mx, "set")
+      nlhs = 0
+      nrhs = 3
+      mexSet = mexCallMATLAB(nlhs, answer, nrhs, mx, "set")
       call mxDestroyArray(mx(2))
       call mxDestroyArray(mx(1))
       return
@@ -475,11 +486,13 @@
 !-LOC
       mwPointer rhs(1), lhs(1)
       mwPointer mx
-      integer(4) k
+      integer(4) k, nlhs, nrhs
       mwIndex i, n
 !-----
       nullify(fp)
-      k = mexCallMATLAB(1, lhs, 0, rhs, "whos") ! Get list of variables
+      nlhs = 1
+      nrhs = 0
+      k = mexCallMATLAB(nlhs, lhs, nrhs, rhs, "whos") ! Get list of variables
       if( k == 0 ) then
           n = mxGetNumberOfElements(lhs(1)) ! Get number of variables
           if( n /= 0 ) then

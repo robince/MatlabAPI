@@ -5,9 +5,9 @@
 !  Function:    MatlabAPI_real
 !  Filename:    MatlabAPI_real.f
 !  Programmer:  James Tursa
-!  Version:     1.00
-!  Date:        October 27, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -70,6 +70,10 @@
 #define mwIndex integer*4
 #endif
 
+#ifdef PERCENTLOC
+#define loc %LOC
+#endif
+
 !---------------------------------------------------------------------
 
       subroutine mexFunction(nlhs, plhs, nrhs, prhs)
@@ -88,10 +92,9 @@
       real(8), pointer :: Zfp1D(:)
       character(len=63), pointer :: names(:)
       mwPointer :: Apr
-      mwSize :: M, N
+      mwSize :: M, N, P
       integer :: istat
       integer*4 :: i, j, k
-      mwSize :: n1,n2, n3
 !-----
 !\
 ! Check the input
@@ -130,9 +133,9 @@
       k = mexPrint("MatlabAPI_real test function")
       k = mexPrint(" ")
       k = mexPrint("... Generating a 3 x 4 double matrix for testing")
-      n1 = 3
-      n2 = 4
-      mx = mxCreateDoubleMatrix(n1, n2, mxREAL)
+      M = 3
+      N = 4
+      mx = mxCreateDoubleMatrix(M, N, mxREAL)
       k = mexPrint("... Getting 2D Fortran pointer to real data Afp2D")
       Afp2D => fpGetPr(mx)
       if( .not.associated(Afp2D) ) then
@@ -218,9 +221,7 @@
 ! routine cannot have assumed shape arguments.
 !/
       k = mexPrint("... Calling the implicit print routine with Afp2D")
-      n1 = size(Afp2D,1)
-      n2 = size(Afp2D,2)
-      call DisplayMatrixImplicit2(Afp2D,n1,n2)
+      call DisplayMatrixImplicit2(Afp2D,size(Afp2D,1),size(Afp2D,2))
 !\
 ! Now lets allocate a Fortran pointer using the MATLAB API mxMalloc function
 ! in the background and then copy the data using the pointer to the original
@@ -235,9 +236,7 @@
 !/
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Allocate memory for Fortran pointer, Bfp2D")
-      n1 = size(Afp2D,1)
-      n2 = size(Afp2D,2)
-      Bfp2D => fpAllocate(n1,n2)
+      Bfp2D => fpAllocate(size(Afp2D,1),size(Afp2D,2))
       if( .not.associated(Bfp2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to allocate memory for Bfp2D")
@@ -282,9 +281,9 @@
 !/
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Reshaping Afp2D as a 6 x 2 Bfp2D, no data copy")
-      n1 = 6
-      n2 = 2
-      Bfp2D => fpReshape(Afp2D,n1,n2)
+      M = 6
+      N = 2
+      Bfp2D => fpReshape(Afp2D,M,N)
       if( .not.associated(Bfp2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Afp2D as 6 x 2")
@@ -294,9 +293,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfp2D as a 4 x 3 Bfp2D, no data copy")
-      n1 = 4
-      n2 = 3
-      Bfp2D => fpReshape(Bfp2D,n1,n2)
+      M = 4
+      N = 3
+      Bfp2D => fpReshape(Bfp2D,M,N)
       if( .not.associated(Bfp2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfp2D as 4 x 3")
@@ -306,10 +305,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfp2D as a 2 x 3 x 2 Cfp3D, no copy")
-      n1 = 2
-      n2 = 3
-      n3 = 2
-      Cfp3D => fpReshape(Bfp2D,n1,n2,n3)
+      M = 2
+      N = 3
+      P = 2
+      Cfp3D => fpReshape(Bfp2D,M,N,P)
       if( .not.associated(Cfp3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfp2D as 2 x 3 x 2")
@@ -331,8 +330,7 @@
           call mexErrMsgTxt("Unable to allocate B")
       endif
       k = mexPrint("... Getting a 1D pointer to B, Zfp1D")
-      n1 = size(B)
-      Zfp1D => fpReshape(B,n1)
+      Zfp1D => fpReshape(B,size(B))
       k = mexPrint("... Filling real matrix B with natural numbers")
       Zfp1D = (/ (i, i=1,size(Zfp1D)) /)
       k = mexPrint("... Calling the explicit print routine with B")
@@ -340,9 +338,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 3 x 8 Bfp2D, no data copy")
-      n1 = 3
-      n2 = 8
-      Bfp2D => fpReshape(B,n1,n2)
+      M = 3
+      N = 8
+      Bfp2D => fpReshape(B,M,N)
       if( .not.associated(Bfp2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfp2D as 3 x 8")
@@ -352,10 +350,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 2 x 3 x 4 Cfp3D, no data copy")
-      n1 = 2
-      n2 = 3
-      n3 = 4
-      Cfp3D => fpReshape(B,n1,n2,n3)
+      M = 2
+      N = 3
+      P = 4
+      Cfp3D => fpReshape(B,M,N,P)
       if( .not.associated(Cfp3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape B as 2 x 3 x 4")
@@ -365,10 +363,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Cfp3D as a 3 x 4 x 2 Cfp3D, no copy")
-      n1 = 3
-      n2 = 4
-      n3 = 2
-      Cfp3D => fpReshape(Cfp3D,n1,n2,n3)
+      M = 3
+      N = 4
+      P = 2
+      Cfp3D => fpReshape(Cfp3D,M,N,P)
       if( .not.associated(Cfp3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfp3D as 3 x 4 x 2")
@@ -378,10 +376,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Zfp1D as non-contiguous slice")
-      n1 = 3
-      n2 = 2
-      n3 = 2
-      Cfp3D => fpReshape(Zfp1D(1:size(Zfp1D):2),n1,n2,n3)
+      M = 3
+      N = 2
+      P = 2
+      Cfp3D => fpReshape(Zfp1D(1:size(Zfp1D):2),M,N,P)
       if( .not.associated(Cfp3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Zfp1D as 3 x 2 x 2")
@@ -409,9 +407,9 @@
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Attempting to reshape a null pointer")
       nullify(Afp2D)
-      n1 = 4
-      n2 = 0
-      Bfp2D => fpReshape(Afp2D,n1,n2)
+      M = 4
+      N = 0
+      Bfp2D => fpReshape(Afp2D,M,N)
       if( .not.associated(Bfp2D) ) then
           k = mexPrint("... Good, it failed as expected")
       else
@@ -443,8 +441,8 @@
           call mexErrMsgTxt("Unable to allocate B")
       endif
       k = mexPrint("... Getting 1D Fortran pointer to B Zfp1D")
-      n1 = size(B)
-      Zfp1D => fpReshape(B,n1)
+      M = size(B)
+      Zfp1D => fpReshape(B,M)
       if( .not.associated(Zfp1D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to associate pointer Zfp1D")
@@ -488,7 +486,7 @@
       N = size(A,2)
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)
@@ -514,7 +512,7 @@
       P = size(A,3)
       if( M*N*P == 0 ) return
       address = loc(A(1,1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
           write(line,*) 'Sub-Matrix',j
@@ -549,10 +547,10 @@
       k = mexPrint("Implicit Interface 2D Matrix Print")
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
-          write(line,*) 'Row',i,' = ',int(A(i,:))
+          write(line,*) 'Row',i,' = ',int(A(i,:),1)
           k = mexPrint(line)
       enddo
       return

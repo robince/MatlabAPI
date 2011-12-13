@@ -5,9 +5,9 @@
 !  Function:    MatlabAPI_getset
 !  Filename:    MatlabAPI_getset.f
 !  Programmer:  James Tursa
-!  Version:     1.00
-!  Date:        October 27, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -93,10 +93,10 @@
       real(8), pointer :: fpx(:)          ! Used for pointing to data
       real(8), pointer :: fpy(:)          !  areas of mxArray variables
       character(len=80) title
-      integer*4 k
+      mwSize m, n
+      integer*4 k, mrhs, mlhs
       integer :: init = 1
       real(8) :: handle
-      mwSize :: n1,n2
 !-SAV
       save init, handle
 !-----
@@ -117,20 +117,26 @@
 ! the save attribute so it will retain its value between calls.
 !/
       if( init == 1 ) then
-           n1 = 1
-           n2 = 200
-           rhs(1) = mxCreateDoubleMatrix(n1,n2,mxREAL)
+           m = 1
+           n = 200
+           rhs(1) = mxCreateDoubleMatrix(m,n,mxREAL)
            fpx => fpGetPr1(rhs(1))
-           rhs(2) = mxCreateDoubleMatrix(n1,n2,mxREAL)
+           rhs(2) = mxCreateDoubleMatrix(m,n,mxREAL)
            fpy => fpGetPr1(rhs(2))
            call makespiral(fpx,fpy)
            rhs(3) = mxCreateString("-o")
-           k = mexCallMATLAB(0,lhs,0,rhs,"figure")
-           k = mexCallMATLAB(0,lhs,3,rhs,"plot")
+           mlhs = 0
+           mrhs = 0
+           k = mexCallMATLAB(mlhs,lhs,mrhs,rhs,"figure")
+           mlhs = 0
+           mrhs = 3
+           k = mexCallMATLAB(mlhs,lhs,mrhs,rhs,"plot")
            call mxDestroyArray(rhs(3))
            call mxDestroyArray(rhs(2))
            call mxDestroyArray(rhs(1))
-           k = mexCallMATLAB(1,lhs,0,rhs,"gca")
+           mlhs = 1
+           mrhs = 0
+           k = mexCallMATLAB(mlhs,lhs,mrhs,rhs,"gca")
            handle = mxGetScalar(lhs(1))
            call mxDestroyArray(lhs(1))
            init = 0
@@ -175,7 +181,9 @@
      &       'New colors = (',2(F6.3,','),F6.3,' )')
       rhs(1) = mxCreateDoubleScalar(handle)
       rhs(2) = mxCreateString(title)
-      k = mexCallMATLAB(0,lhs,2,rhs,"title")
+      mlhs = 0
+      mrhs = 2
+      k = mexCallMATLAB(mlhs,lhs,mrhs,rhs,"title")
 !\
 ! Clean-up
 !/

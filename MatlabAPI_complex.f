@@ -5,9 +5,9 @@
 !  Function:    MatlabAPI_complex
 !  Filename:    MatlabAPI_complex.f
 !  Programmer:  James Tursa
-!  Version:     1.00
-!  Date:        October 27, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -70,6 +70,10 @@
 #define mwIndex integer*4
 #endif
 
+#ifdef PERCENTLOC
+#define loc %LOC
+#endif
+
 !---------------------------------------------------------------------
 
       subroutine mexFunction(nlhs, plhs, nrhs, prhs)
@@ -83,16 +87,16 @@
       mwPointer :: mx
       complex(8), allocatable :: B(:,:)
       real(8), pointer :: Afp2D(:,:), Afi2D(:,:)
+      real(8), pointer :: Cfp3D(:,:,:)
       complex(8), pointer :: Cfz3D(:,:,:)
       complex(8), pointer :: Bfz2D(:,:), Cfz2D(:,:)
       complex(8), pointer :: Cfz1D(:)
       real(8), pointer :: Zfp1D(:), Zfi1D(:)
       character(len=63), pointer :: names(:)
       mwPointer :: Apr
-      mwSize :: M, N
+      mwSize :: M, N, P
       integer :: istat
       integer*4 :: i, j, k
-      mwSize :: n1,n2,n3
 !-----
 !\
 ! Check the input
@@ -131,9 +135,9 @@
       k = mexPrint("MatlabAPI_complex test function")
       k = mexPrint(" ")
       k = mexPrint("... Generating a 3 x 4 complex matrix for testing")
-      n1 = 3
-      n2 = 4
-      mx = mxCreateDoubleMatrix(n1, n2, mxCOMPLEX)
+      M = 3
+      N = 4
+      mx = mxCreateDoubleMatrix(M, N, mxCOMPLEX)
       k = mexPrint("... Getting 1D Fortran pointer to real data Zfp1D")
       Zfp1D => fpGetPr1(mx)
       if( .not.associated(Zfp1D) ) then
@@ -193,17 +197,17 @@
 !/
       k = mexPrint("--------------------------------------------------")
       k = mexPrint("... Allocate for complex Fortran pointer, Bfz2D")
-      n1 = size(Afp2D,1)
-      n2 = size(Afp2D,2)
-      Bfz2D => fpAllocateZ(n1,n2)
+      M = size(Afp2D,1)
+      N = size(Afp2D,2)
+      Bfz2D => fpAllocateZ(M,N)
       if( .not.associated(Bfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to allocate memory for Bfz2D")
       endif
       k = mexPrint("... It worked, since Bfz2D is now associated")
       k = mexPrint("... Reshape it as a 1D matrix")
-      n1 = size(Bfz2D)
-      Cfz1D => fpReshape(Bfz2D,n1)
+      M = size(Bfz2D)
+      Cfz1D => fpReshape(Bfz2D,M)
       if( .not.associated(Cfz1D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D")
@@ -228,9 +232,9 @@
           call mexErrMsgTxt("Unable to associate pointer Bfz2D")
       endif
       k = mexPrint("... Reshaping Bfz2D as a 6 x 2 Cfz2D, no data copy")
-      n1 = 6
-      n2 = 2
-      Cfz2D => fpReshape(Bfz2D,n1,n2)
+      M = 6
+      N = 2
+      Cfz2D => fpReshape(Bfz2D,M,N)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 6 x 2")
@@ -240,9 +244,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfz2D as a 4 x 3 Cfz2D, no data copy")
-      n1 = 4
-      n2 = 3
-      Cfz2D => fpReshape(Bfz2D,n1,n2)
+      M = 4
+      N = 3
+      Cfz2D => fpReshape(Bfz2D,M,N)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz2D as 4 x 3")
@@ -252,10 +256,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Bfz2D as a 2 x 3 x 2 Cfz3D, no copy")
-      n1 = 2
-      n2 = 3
-      n3 = 2
-      Cfz3D => fpReshape(Bfz2D,n1,n2,n3)
+      M = 2
+      N = 3
+      P = 2
+      Cfz3D => fpReshape(Bfz2D,M,N,P)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 2 x 3 x 2")
@@ -280,8 +284,8 @@
           call mexErrMsgTxt("Unable to allocate B")
       endif
       k = mexPrint("... Getting a 1D pointer to B, Cfz1D")
-      n1 = size(B)
-      Cfz1D => fpReshape(B,n1)
+      M = size(B)
+      Cfz1D => fpReshape(B,M)
       k = mexPrint("... Filling complex matrix B with natural numbers")
       Cfz1D = (/ (i*(1.d0,-1.d0), i=1,size(Cfz1D)) /)
       k = mexPrint("... Calling the explicit print routine with B")
@@ -289,9 +293,9 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 3 x 8 Cfz2D, no data copy")
-      n1 = 3
-      n2 = 8
-      Cfz2D => fpReshape(B,n1,n2)
+      M = 3
+      N = 8
+      Cfz2D => fpReshape(B,M,N)
       if( .not.associated(Cfz2D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Bfz2D as 3 x 8")
@@ -301,10 +305,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping B as a 2 x 3 x 4 Cfz3D, no data copy")
-      n1 = 2
-      n2 = 3
-      n3 = 4 
-      Cfz3D => fpReshape(B,n1,n2,n3)
+      M = 2
+      N = 3
+      P = 4
+      Cfz3D => fpReshape(B,M,N,P)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape B as 2 x 3 x 4")
@@ -314,10 +318,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Cfz3D as a 3 x 4 x 2 Cfz3D, no copy")
-      n1 = 3
-      n2 = 4
-      n3 = 2
-      Cfz3D => fpReshape(Cfz3D,n1,n2,n3)
+      M = 3
+      N = 4
+      P = 2
+      Cfz3D => fpReshape(Cfz3D,M,N,P)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz3D as 3 x 4 x 2")
@@ -327,10 +331,10 @@
       k = mexPrint(" ")
 
       k = mexPrint("... Reshaping Cfz1D as non-contiguous slice")
-      n1 = 3
-      n2 = 2
-      n3 = 2
-      Cfz3D => fpReshape(Cfz1D(1:size(Cfz1D):2),n1,n2,n3)
+      M = 3
+      N = 2
+      P = 2
+      Cfz3D => fpReshape(Cfz1D(1:size(Cfz1D):2),M,N,P)
       if( .not.associated(Cfz3D) ) then
           call mxDestroyArray(mx)
           call mexErrMsgTxt("Unable to reshape Cfz1D as 3 x 2 x 2")
@@ -339,8 +343,28 @@
       call DisplayMatrixExplicit3z(Cfz3D)
       k = mexPrint(" ")
 
+      k = mexPrint("... Pointing Cfp3D to real part of Cfz3D")
+      Cfp3D => fpReal(Cfz3D)
+      if( .not.associated(Cfp3D) ) then
+          call mxDestroyArray(mx)
+          call mexErrMsgTxt("Unable to point to real part")
+      endif
+      k = mexPrint("... Calling the explicit print routine with Cfp3D")
+      call DisplayMatrixExplicit3(Cfp3D)
+      k = mexPrint(" ")
+
+      k = mexPrint("... Pointing Cfp3D to imaginary part of Cfz3D")
+      Cfp3D => fpImag(Cfz3D)
+      if( .not.associated(Cfp3D) ) then
+          call mxDestroyArray(mx)
+          call mexErrMsgTxt("Unable to point to imaginary part")
+      endif
+      k = mexPrint("... Calling the explicit print routine with Cfp3D")
+      call DisplayMatrixExplicit3(Cfp3D)
+      k = mexPrint(" ")
+
       k = mexPrintf("... Creating return mxArray from Cfz3D")
-      k = mexPrint(" (the return variable should match above matrix)")
+      k = mexPrint(" Return variable should match above complex matrix")
       plhs(1) = mxArray(Cfz3D)
 
       k = mexPrint("... Deallocating regular Fortran matrix B")
@@ -376,7 +400,7 @@
       N = size(A,2)
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)
@@ -401,7 +425,7 @@
       N = size(A,2)
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',A(i,:)
@@ -427,7 +451,7 @@
       P = size(A,3)
       if( M*N*P == 0 ) return
       address = loc(A(1,1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
           write(line,*) 'Sub-Matrix',j
@@ -457,7 +481,7 @@
       P = size(A,3)
       if( M*N*P == 0 ) return
       address = loc(A(1,1,1))
-      write(line,'(1X,A,Z16)') 'Address of data = ',address
+      write(line,'(1X,A,Z8)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
           write(line,*) 'Sub-Matrix',j

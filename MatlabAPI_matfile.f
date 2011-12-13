@@ -5,9 +5,9 @@
 !  Function:    MatlabAPI_matfile
 !  Filename:    MatlabAPI_matfile.f
 !  Programmer:  James Tursa
-!  Version:     1.00
-!  Date:        October 27, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 

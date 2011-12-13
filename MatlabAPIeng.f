@@ -4,9 +4,9 @@
 ! 
 !  Filename:    MatlabAPIeng.f
 !  Programmer:  James Tursa
-!  Version:     1.01
-!  Date:        December 11, 2009
-!  Copyright:   (c) 2009 by James Tursa, All Rights Reserved
+!  Version:     1.10
+!  Date:        June 20, 2011
+!  Copyright:   (c) 2009, 2011 by James Tursa, All Rights Reserved
 ! 
 !   This code uses the BSD License:
 ! 
@@ -96,9 +96,14 @@
       mwPointer ptr
       mwSize, parameter :: NLMM = NameLengthMaxEng
 !-----
-      ptr = mxMalloc(NameLengthMaxEng * n)
-      call MatlabAPI_COM_CpxEng(n, %val(ptr), %val(NLMM))
-      fp => Cpx1
+      nullify(fp)
+      if( n > 0 ) then
+          ptr = mxMalloc(NameLengthMaxEng * n)
+          if( ptr /= 0 ) then
+              call MatlabAPI_COM_CpxEng(n, %val(ptr), %val(NLMM))
+              fp => Cpx1
+          endif
+      endif
       return
       end function fpAllocate1CharacterEng
 !----------------------------------------------------------------------
@@ -543,11 +548,13 @@
 !-LOC
       mwPointer mxproperty
       mwPointer mx(2), my(1)
-      integer(4) trapflag
+      integer(4) trapflag, nlhs, nrhs
 !-----
       mx(1) = mxCreateDoubleScalar(handle)
       mx(2) = mxCreateString(property)
-      trapflag = engCallMATLAB(ep, 1, my, 2, mx, "get")
+      nlhs = 1
+      nrhs = 2
+      trapflag = engCallMATLAB(ep, nlhs, my, nrhs, mx, "get")
       call mxDestroyArray(mx(2))
       call mxDestroyArray(mx(1))
       if( trapflag == 0 ) then
@@ -573,11 +580,14 @@
 !-LOC
       mwPointer mx(3)
       mwPointer answer(1)
+      integer(4) nlhs, nrhs
 !-----
       mx(1) = mxCreateDoubleScalar(handle)
       mx(2) = mxCreateString(property)
       mx(3) = value
-      engSet = engCallMATLAB(ep, 0, answer, 3, mx, "set")
+      nlhs = 0
+      nrhs = 3
+      engSet = engCallMATLAB(ep, nlhs, answer, nrhs, mx, "set")
       call mxDestroyArray(mx(2))
       call mxDestroyArray(mx(1))
       return
@@ -597,11 +607,13 @@
 !-LOC
       mwPointer rhs(1), lhs(1)
       mwPointer mx
-      integer(4) k
+      integer(4) k, nlhs, nrhs
       mwIndex i, n
 !-----
       nullify(fp)
-      k = engCallMATLAB(ep, 1, lhs, 0, rhs, "whos") ! Get list of variables
+      nlhs = 1
+      nrhs = 0
+      k = engCallMATLAB(ep, nlhs, lhs, nrhs, rhs, "whos") ! Get list of variables
       if( k == 0 ) then
           n = mxGetNumberOfElements(lhs(1)) ! Get number of variables
           if( n /= 0 ) then
