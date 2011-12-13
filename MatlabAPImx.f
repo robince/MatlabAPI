@@ -1105,7 +1105,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetElementSize
 !-----
-      real(8) function mxGetEps
+      real(8) function mxGetEps()
       end function mxGetEps
 !-----
       mwPointer function mxGetField(pm, fieldindex, fieldname)
@@ -1137,7 +1137,7 @@
       mwPointer, intent(in) :: pm
       end function mxGetImagData
 !-----
-      real(8) function mxGetInf
+      real(8) function mxGetInf()
       end function mxGetInf
 !-----
       mwPointer function mxGetIr(pm)
@@ -1160,7 +1160,7 @@
       mwPointer, intent(in) :: mx
       end function mxGetN
 !-----
-      real(8) function mxGetNaN
+      real(8) function mxGetNaN()
       end function mxGetNaN
 !-----
       mwSize function mxGetNumberOfDimensions( mx )
