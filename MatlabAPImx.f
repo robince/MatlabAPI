@@ -4418,10 +4418,11 @@
       n1 = size(mp,1)
       fz => fpAllocateZ(n1)
       mi => fpGetPi1(mx)
+      n1 = size(fz)
       if( associated(mi) ) then
-          call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
+          call mxCopyReal88ToComplex16(mp, mi, fz, n1)
       else
-          call mxCopyReal80ToComplex16(mp, fz, size(fz))
+          call mxCopyReal80ToComplex16(mp, fz, n1)
       endif
       return
       end function fpGetPzCopy1Double      
@@ -4444,10 +4445,11 @@
       n2 = size(mp,2)
       fz => fpAllocateZ(n1,n2)
       mi => fpGetPi2(mx)
+      n1 = size(fz)
       if( associated(mi) ) then
-          call mxCopyReal88ToComplex16(mp, mi, fz, size(fz))
+          call mxCopyReal88ToComplex16(mp, mi, fz, n1)
       else
-          call mxCopyReal80ToComplex16(mp, fz, size(fz))
+          call mxCopyReal80ToComplex16(mp, fz, n1)
       endif
       return
       end function fpGetPzCopy2Double

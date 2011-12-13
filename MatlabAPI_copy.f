@@ -101,7 +101,7 @@
 !\
 ! Do some mxCopy___ tests with real*8 data type
 !/
-      mx = mxCreateDoubleMatrix(1, 3, mxREAL)  ! Create the mxArray
+      mx = mxCreateDoubleMatrix(m, n, mxREAL)  ! Create the mxArray
       pr = mxGetPr(mx)                         ! Get pointer to mxArray data
       fp => fpGetPr1(mx)                       ! Get Fortran pointer to mxArray data
 
