@@ -221,7 +221,9 @@
 ! routine cannot have assumed shape arguments.
 !/
       k = mexPrint("... Calling the implicit print routine with Afp2D")
-      call DisplayMatrixImplicit2(Afp2D,size(Afp2D,1),size(Afp2D,2))
+      M = size(Afp2D,1)
+      N = size(Afp2D,2)
+      call DisplayMatrixImplicit2(Afp2D,M,N)
 !\
 ! Now lets allocate a Fortran pointer using the MATLAB API mxMalloc function
 ! in the background and then copy the data using the pointer to the original
@@ -489,7 +491,7 @@
       N = size(A,2)
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)
@@ -515,7 +517,7 @@
       P = size(A,3)
       if( M*N*P == 0 ) return
       address = loc(A(1,1,1))
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do j=1,p
           write(line,*) 'Sub-Matrix',j
@@ -550,7 +552,7 @@
       k = mexPrint("Implicit Interface 2D Matrix Print")
       if( M*N == 0 ) return
       address = loc(A(1,1))
-      write(line,'(1X,A,Z8)') 'Address of data = ',address
+      write(line,'(1X,A,Z16)') 'Address of data = ',address
       k = mexPrint(line)
       do i=1,M
           write(line,*) 'Row',i,' = ',int(A(i,:),1)
