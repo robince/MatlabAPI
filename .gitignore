@@ -1,7 +1,9 @@
 *.mexmaci
 *.swp
 *.mexmaci64
+*.mexa64
 *.mexw64
 *.obj
+*.o
 *.mat
 *.mod
