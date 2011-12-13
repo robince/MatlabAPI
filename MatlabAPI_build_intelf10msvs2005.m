@@ -42,24 +42,24 @@
 disp('MatlabAPI build script for Intel Fortran 10 with MSVS 2005 Linker')
 disp(' ')
 disp('... Compiling module MatlabAPImx with large model')
-mex -c MatlabAPImx.f
+mex -largeArrayDims -c MatlabAPImx.f
 disp('... Compiling module MatlabAPImex')
-mex -c MatlabAPImex.f
+mex -largeArrayDims -c MatlabAPImex.f
 disp('... Compiling module MatlabAPIeng')
-mex -c MatlabAPIeng.f
+mex -largeArrayDims -c MatlabAPIeng.f
 disp('... Compiling module MatlabAPImat')
-mex -c MatlabAPImat.f
+mex -largeArrayDims -c MatlabAPImat.f
 disp('... Compiling MatlabAPI_real.f example')
-mex MatlabAPI_real.f MatlabAPImex.obj MatlabAPImx.obj
+mex -largeArrayDims MatlabAPI_real.f MatlabAPImex.obj MatlabAPImx.obj
 disp('... Compiling MatlabAPI_complex.f example')
-mex MatlabAPI_complex.f MatlabAPImex.obj MatlabAPImx.obj
+mex -largeArrayDims MatlabAPI_complex.f MatlabAPImex.obj MatlabAPImx.obj
 disp('... Compiling MatlabAPI_getset.f example')
-mex MatlabAPI_getset.f MatlabAPImex.obj MatlabAPImx.obj
+mex -largeArrayDims MatlabAPI_getset.f MatlabAPImex.obj MatlabAPImx.obj
 disp('... Compiling MatlabAPI_implicit.f example')
-mex MatlabAPI_implicit.f MatlabAPImex.obj MatlabAPImx.obj
+mex -largeArrayDims MatlabAPI_implicit.f MatlabAPImex.obj MatlabAPImx.obj
 disp('... Compiling MatlabAPI_matfile.f example')
-mex MatlabAPI_matfile.f MatlabAPImex.obj MatlabAPImx.obj MatlabAPImat.obj
+mex -largeArrayDims MatlabAPI_matfile.f MatlabAPImex.obj MatlabAPImx.obj MatlabAPImat.obj
 disp('... Compiling MatlabAPI_engine.f example')
-options = [matlabroot '\bin\win32\mexopts\intelf10msvs2005engmatopts.bat'];
-mex('-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.obj', 'MatlabAPImx.obj')
+%options = [matlabroot '\bin\win32\mexopts\intelf10msvs2005engmatopts.bat'];
+%mex('-f', options, 'MatlabAPI_engine.f', 'MatlabAPIeng.obj', 'MatlabAPImx.obj')
 disp('... Done!')
