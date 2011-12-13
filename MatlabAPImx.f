@@ -4663,7 +4663,7 @@
       common /MatlabAPI_COMA2/ Apx2
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4671,8 +4671,10 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
               call MatlabAPI_COM_Apx2( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2) /) )
+     &                                 (/ n1, n2 /) )
               fp => Apx2
           endif
       endif
@@ -4689,7 +4691,7 @@
       common /MatlabAPI_COMA2/ Apx2
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4697,8 +4699,10 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
               call MatlabAPI_COM_Apx2( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2) /) )
+     &                                 (/ n1, n2 /) )
               fp => Apx2
           endif
       endif
@@ -4715,7 +4719,7 @@
       common /MatlabAPI_COMA3/ Apx3
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4723,9 +4727,11 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
               call MatlabAPI_COM_Apx3( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3) /) )
+     &                                 (/ n1, n2, n3 /) )
               fp => Apx3
           endif
       endif
@@ -4742,7 +4748,7 @@
       common /MatlabAPI_COMA3/ Apx3
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4750,9 +4756,11 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
               call MatlabAPI_COM_Apx3( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3) /) )
+     &                                 (/ n1, n2, n3 /) )
               fp => Apx3
           endif
       endif
@@ -4769,7 +4777,7 @@
       common /MatlabAPI_COMA4/ Apx4
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4777,9 +4785,12 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
               call MatlabAPI_COM_Apx4( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4) /) )
+     &                                 (/ n1, n2, n3, n4 /) )
               fp => Apx4
           endif
       endif
@@ -4796,7 +4807,7 @@
       common /MatlabAPI_COMA4/ Apx4
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4804,9 +4815,12 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
               call MatlabAPI_COM_Apx4( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4) /) )
+     &                                 (/ n1, n2, n3 ,n4 /) )
               fp => Apx4
           endif
       endif
@@ -4823,7 +4837,7 @@
       common /MatlabAPI_COMA5/ Apx5
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4831,10 +4845,13 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
               call MatlabAPI_COM_Apx5( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5) /) )
+     &                                 (/ n1, n2, n3, n4, n5 /) )
               fp => Apx5
           endif
       endif
@@ -4851,7 +4868,7 @@
       common /MatlabAPI_COMA5/ Apx5
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4859,10 +4876,13 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
               call MatlabAPI_COM_Apx5( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5) /) )
+     &                                 (/  n1, n2, n3, n4, n5 /) )
               fp => Apx5
           endif
       endif
@@ -4879,7 +4899,7 @@
       common /MatlabAPI_COMA6/ Apx6
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5, n6
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4887,10 +4907,14 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
+              n6 = size(z,6)
               call MatlabAPI_COM_Apx6( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5), size(z,6) /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6 /) )
               fp => Apx6
           endif
       endif
@@ -4907,7 +4931,7 @@
       common /MatlabAPI_COMA6/ Apx6
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5, n6
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4915,10 +4939,14 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
+              n6 = size(z,6)
               call MatlabAPI_COM_Apx6( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5), size(z,6) /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6 /) )
               fp => Apx6
           endif
       endif
@@ -4935,7 +4963,7 @@
       common /MatlabAPI_COMA7/ Apx7
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5, n6, n7
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4943,11 +4971,15 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
+              n6 = size(z,6)
+              n7 = size(z,7)
               call MatlabAPI_COM_Apx7( %VAL(zaddress), 2*stride,        &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5), size(z,6),         &
-     &                                    size(z,7) /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /) )
               fp => Apx7
           endif
       endif
@@ -4964,7 +4996,7 @@
       common /MatlabAPI_COMA7/ Apx7
 !-LOC
       mwPointer :: zaddress
-      mwSize :: stride
+      mwSize :: stride, n1, n2, n3, n4, n5, n6, n7
 !-----
       nullify(fp)
       zaddress = loc(z)
@@ -4972,11 +5004,15 @@
           stride = fpStride(z)
           if( stride /= 0 .and. size(z) /= 0 ) then
               zaddress = loc(z(1,1,1,1,1,1,1))
+              n1 = size(z,1)
+              n2 = size(z,2)
+              n3 = size(z,3)
+              n4 = size(z,4)
+              n5 = size(z,5)
+              n6 = size(z,6)
+              n7 = size(z,7)
               call MatlabAPI_COM_Apx7( %VAL(zaddress+8), 2*stride,      &
-     &                                 (/ size(z,1), size(z,2),         &
-     &                                    size(z,3), size(z,4),         &
-     &                                    size(z,5), size(z,6),         &
-     &                                    size(z,7) /) )
+     &                                 (/ n1, n2, n3, n4, n5, n6, n7 /) )
               fp => Apx7
           endif
       endif
