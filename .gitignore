@@ -1,0 +1,6 @@
+*.mexmaci
+*.mexmaci64
+*.mexw64
+*.obj
+*.mat
+*.mod
