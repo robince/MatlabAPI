@@ -10521,10 +10521,10 @@
       call mxSetM(mx, N)
       call mxSetN(mx, N)
       address = loc(A)
-      call fpSetPr(mx, address)
+      call mxSetPr(mx, address)
       if( present(B)) then
           address = loc(B)
-          call fpSetPi(mx, address)
+          call mxSetPi(mx, address)
       endif
       return
       end function mxArrayHeader0double
@@ -10572,10 +10572,10 @@
       call mxSetM(mx, M)
       call mxSetN(mx, N)
       address = loc(A(1))
-      call fpSetPr(mx, address)
+      call mxSetPr(mx, address)
       if( present(B)) then
           address = loc(B(1))
-          call fpSetPi(mx, address)
+          call mxSetPi(mx, address)
       endif
       return
       end function mxArrayHeader1double
@@ -10607,10 +10607,10 @@
       call mxSetM(mx, M)
       call mxSetN(mx, N)
       address = loc(A(1,1))
-      call fpSetPr(mx, address)
+      call mxSetPr(mx, address)
       if( present(B)) then
           address = loc(B(1,1))
-          call fpSetPi(mx, address)
+          call mxSetPi(mx, address)
       endif
       return
       end function mxArrayHeader2double
@@ -10652,10 +10652,10 @@
           return
       endif
       address = loc(A(1,1,1))
-      call fpSetPr(mx, address )
+      call mxSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1))
-          call fpSetPi(mx, address )
+          call mxSetPi(mx, address )
       endif
       return
       end function mxArrayHeader3double
@@ -10697,10 +10697,10 @@
           return
       endif
       address = loc(A(1,1,1,1))
-      call fpSetPr(mx, address )
+      call mxSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1))
-          call fpSetPi(mx, address )
+          call mxSetPi(mx, address )
       endif
       return
       end function mxArrayHeader4double
@@ -10742,10 +10742,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1))
-      call fpSetPr(mx, address )
+      call mxSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1))
-          call fpSetPi(mx, address )
+          call mxSetPi(mx, address )
       endif
       return
       end function mxArrayHeader5double
@@ -10787,10 +10787,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1,1))
-      call fpSetPr(mx, address )
+      call mxSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1,1))
-          call fpSetPi(mx, address )
+          call mxSetPi(mx, address )
       endif
       return
       end function mxArrayHeader6double
@@ -10832,10 +10832,10 @@
           return
       endif
       address = loc(A(1,1,1,1,1,1,1))
-      call fpSetPr(mx, address )
+      call mxSetPr(mx, address )
       if( present(B) ) then
           address = loc(B(1,1,1,1,1,1,1))
-          call fpSetPi(mx, address )
+          call mxSetPi(mx, address )
       endif
       return
       end function mxArrayHeader7double
